@@ -24,8 +24,8 @@ namespace DEPFET {
       const VIEWTYPE& operator()(size_t x, size_t y) const { return m_data[x*m_nY+y]; }
       const VIEWTYPE& operator[](size_t index) const { return m_data[index]; }
 
-      size_t getNX() const { return m_nX; }
-      size_t getNY() const { return m_nY; }
+      size_t getSizeX() const { return m_nX; }
+      size_t getSizeY() const { return m_nY; }
     protected:
       VIEWTYPE* m_data;
       size_t m_nX;
@@ -38,14 +38,19 @@ namespace DEPFET {
         return DataView<T>(m_data, nX, nY);
       };
 
-      void read(std::istream &in, size_t eventSize) {
+      void read(std::istream &in, size_t eventSize, int deviceType, int startGate) {
         m_data.resize(eventSize);
+        m_deviceType = deviceType;
+        m_startGate  = startGate;
         in.read((char*) &m_data.front(), sizeof(unsigned int)*eventSize);
       }
 
+      int getDeviceType() const { return m_deviceType; }
       int getStartGate() const { return m_startGate; }
+      int getEventSize() const { return m_data.size(); }
     protected:
       int m_startGate;
+      int m_deviceType;
       std::vector<unsigned int> m_data;
   };
 

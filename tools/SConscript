@@ -1,5 +1,5 @@
 Import('env')
 
-env['TOOLS_LIBS']['depfetReader'] = ['pxdTestBeam']
+env['TOOLS_LIBS']['depfetReader'] = ['DEPFETReader','$ROOT_LIBS']
 
 Return('env')

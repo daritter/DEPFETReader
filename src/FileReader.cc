@@ -1,11 +1,11 @@
-#include <pxdTestBeam/FileReader.h>
+#include <DEPFETReader/FileReader.h>
 
 using namespace std;
 
 namespace DEPFET {
   FileReader::NullStream FileReader::NO_LOGGING;
 
-  FileReader::FileReader(const string& filename, int nTrigger, ostream& logging): m_nTrigger(nTrigger), m_logging(logging)
+  FileReader::FileReader(const string& filename, ostream& logging): m_logging(logging)
   {
     m_logging << "DEPFET::FileReader: FileName=" << filename << std::endl;
     m_file.exceptions(ifstream::failbit | ifstream::badbit);
@@ -30,6 +30,7 @@ namespace DEPFET {
 
       if (header.DeviceType == DEVICETYPE_INFO) {
         m_logging << "DEPFET::FileReader: Run Number=" << header.Triggernumber << std::endl;
+        m_runNumber =  header.Triggernumber;
       }
 
       switch (header.DeviceType) {
@@ -60,12 +61,11 @@ namespace DEPFET {
     return nModules;
   }
 
-  int FileReader::readEventHeader(int eventNumber)
+  int FileReader::readEventHeader()
   {
     if (readHeader() > 0) return 1;
     switch (header.DeviceType) {
       case DEVICETYPE_GROUP:
-        if (m_nTrigger > 0 && eventNumber > m_nTrigger) return -1;
         return 100;
       case DEVICETYPE_DEPFET:
       case DEVICETYPE_DEPFET_128:
@@ -105,13 +105,15 @@ namespace DEPFET {
     skipWords((header.EventSize - 2)*4);
   }
 
-  int FileReader::readEvent(DepfetEvent *depfetModule, int &eventsize)
+  int FileReader::readEvent(RawData& rawdata)
   {
     unsigned int startgate;
     struct InfoWord *infoWord;
     try {
       m_file.read((char*)&startgate, sizeof(startgate));
     } catch (ifstream::failure e) {
+
+
       m_logging << "DEPFET::FileReader EOF" << std::endl;
       return 1;
     }
@@ -121,11 +123,9 @@ namespace DEPFET {
     m_logging << "InfoWord.zerosupp      = 0x" << hex << infoWord->zerosupp << endl;
     m_logging << "InfoWord.startgate_ver = 0x" << hex << infoWord->startgate_ver << endl;
     m_logging << "InfoWord.temperature   = 0x" << hex << infoWord->temperature << endl << dec;
-    eventsize = header.EventSize - 3;
+    int eventsize = header.EventSize - 3;
     m_logging << "DEPFET::FileReader Eventsize=" << eventsize << endl;
-    //m_file.read((char*)depfetModule->data, sizeof(unsigned int)*eventsize);
-    //depfetModule->startgate = (startgate >> 10) & 0x7f;
-
+    rawdata.read(m_file, eventsize, header.DeviceType, (startgate >> 10) & 0x7f);
     return 0;
   }
 

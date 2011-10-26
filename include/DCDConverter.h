@@ -1,8 +1,8 @@
 #ifndef DEPFET_DCDCONVERTER_H
 #define DEPFET_DCDCONVERTER_H
 
-#include <pxdTestBeam/RawData.h>
-#include <pxdTestBeam/ADCValues.h>
+#include <DEPFETReader/RawData.h>
+#include <DEPFETReader/ADCValues.h>
 
 namespace DEPFET {
 

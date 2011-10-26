@@ -1,6 +1,8 @@
 #ifndef DEPFET_FILEREADER_H
 #define DEPFET_FILEREADER_H
 
+#include <DEPFETReader/RawData.h>
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -49,7 +51,6 @@ namespace DEPFET {
 
   private:
     std::ifstream m_file;
-    int m_nTrigger;
     std::ostream& m_logging;
 
   public:
@@ -82,7 +83,9 @@ namespace DEPFET {
     struct Header header;
     struct InfoWord *infoword1;
 
-    FileReader(const std::string &filename, int Ntriggers, std::ostream& logging = NO_LOGGING);
+    int m_runNumber;
+
+    FileReader(const std::string &filename, std::ostream& logging = NO_LOGGING);
     ~FileReader() {};
 
 
@@ -91,8 +94,8 @@ namespace DEPFET {
 
     int readHeader();
     int readGroupHeader();
-    int readEventHeader(int eventNumber);
-    int readEvent(DepfetEvent *depfetModule, int &eventsize);
+    int readEventHeader();
+    int readEvent(RawData &rawdata);
   };
 }
 #endif /*DEPFET_FILEREADER_H*/

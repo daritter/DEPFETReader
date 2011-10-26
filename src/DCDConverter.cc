@@ -1,4 +1,4 @@
-#include <pxdTestBeam/DCDConverter.h>
+#include <DEPFETReader/DCDConverter.h>
 namespace DEPFET {
 
   int SWBChannelMap[16]   = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
@@ -21,14 +21,15 @@ namespace DEPFET {
 
   void DCDConverter2Fold::operator()(const RawData &rawData, ADCValues &adcValues)
   {
+    adcValues.setSize(64,32);
     DataView<signed char> v4data = rawData.getView<signed char>();
     if(m_useDCDMapping){
       // printf("=> try with internal maps \n");
       // do not touch maps above!! and cross fingers
 
       int iData = -1;  // pointer to raw data
-      int noOfDCDBChannels = adcValues.getNX() * 2; // used channels only
-      int noOfSWBChannels = adcValues.getNY() / 2;  // used channels only
+      int noOfDCDBChannels = adcValues.getSizeX() * 2; // used channels only
+      int noOfSWBChannels = adcValues.getSizeY() / 2;  // used channels only
 
       for (int offset = 0; offset < noOfSWBChannels; ++offset)  { // loop over SWB channels
         // this is the SWB channel/pad switched on
@@ -61,9 +62,9 @@ namespace DEPFET {
     }else{
       // all encodings done on daq (only bonn laser data)
       int ipix = -1;
-      for (size_t offset = 0; offset < adcValues.getNY(); ++offset)  { // loop over Switcher channels
-        int igate = (rawData.getStartGate() + offset) % adcValues.getNY();
-        for (size_t idrain = 0; idrain < adcValues.getNX(); ++idrain) { // loop over DCD channels
+      for (size_t offset = 0; offset < adcValues.getSizeY(); ++offset)  { // loop over Switcher channels
+        int igate = (rawData.getStartGate() + offset) % adcValues.getSizeY();
+        for (size_t idrain = 0; idrain < adcValues.getSizeX(); ++idrain) { // loop over DCD channels
           adcValues(idrain,igate) = (signed short) v4data[++ipix];
         }
       }
@@ -72,16 +73,17 @@ namespace DEPFET {
 
   void DCDConverter4Fold::operator()(const RawData &rawData, ADCValues &adcValues)
   {
+    adcValues.setSize(32,64);
     DataView<signed char> v4data = rawData.getView<signed char>();
     int iPix(-1);
-    int nGates = adcValues.getNX()/4;
-    int nColDCD = adcValues.getNY()*4;
+    int nGates = adcValues.getSizeX()/4;
+    int nColDCD = adcValues.getSizeY()*4;
     for(int gate=0; gate<nGates; ++gate){
       int iRowD1 = (rawData.getStartGate() + gate) % nGates;
       for(int colDCD=0; colDCD< nColDCD; ++colDCD){
         int icolD = m_useDCDMapping?FPGAToDrainMap[colDCD]:colDCD;
-        int col = icolD/4 % adcValues.getNX();
-        int row = (iRowD1*4+icolD%4) % adcValues.getNY();
+        int col = icolD/4 % adcValues.getSizeX();
+        int row = (iRowD1*4+icolD%4) % adcValues.getSizeY();
         adcValues(col,row) = (signed short) v4data[++iPix];
       }
     }
