@@ -1,6 +1,8 @@
 #ifndef DEPFET_ADCVALUES_H
 #define DEPFET_ADCVALUES_H
 
+#include <stdexcept>
+
 namespace DEPFET {
 
   template<class T> class ValueMatrix {
@@ -18,19 +20,28 @@ namespace DEPFET {
       value_type operator[](size_t index) const { return m_data[index]; }
       value_type& operator()(size_t x, size_t y) { return m_data[x*m_sizeY+y]; }
       value_type& operator[](size_t index){ return m_data[index]; }
+      template<class T2> void substract(const ValueMatrix<T2>& other){
+        if(other.getSizeX() != m_sizeX || other.getSizeY() != m_sizeY) {
+          throw std::runtime_error("Dimensions do not match");
+        }
+        for(size_t i=0; i<m_data.size(); ++i) m_data[i] -= (value_type) other[i];
+      }
     protected:
       size_t m_sizeX;
       size_t m_sizeY;
       std::vector<value_type> m_data;
   };
 
-  class ADCValues: public ValueMatrix<int> {
+  class ADCValues: public ValueMatrix<double> {
     public:
-      ADCValues(): ValueMatrix<int>(), m_moduleNr(0) {}
+      ADCValues(): ValueMatrix<double>(), m_moduleNr(0) {}
       int getModuleNr() const { return m_moduleNr; }
+      int getTriggerNr() const { return m_triggerNr; }
       void setModuleNr(int moduleNr) { m_moduleNr = moduleNr; }
+      void setTriggerNr(int triggerNr){ m_triggerNr = triggerNr; }
     protected:
       int m_moduleNr;
+      int m_triggerNr;
   };
 
 }

@@ -21,10 +21,10 @@ namespace DEPFET {
 
     //Make sure event data is present
     m_event.resize(nModules);
-    m_mod2Index.clear();
 
     //Set ModuleNr for event and mapping of moduleNo->index
     if(yearflag!=9999){
+      m_mod2Index.clear();
       for(int i=0; i<nModules; ++i){
         m_file->readHeader();
         m_event.at(i).setModuleNr(m_file->header.ModuleNo);

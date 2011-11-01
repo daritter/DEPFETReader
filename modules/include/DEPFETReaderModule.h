@@ -3,7 +3,7 @@
  * Copyright(C) 2010-2011  Belle II Collaboration                         *
  *                                                                        *
  * Author: The Belle II Collaboration                                     *
- * Contributors: Martin Ritter, Susanne Koblitz                           *
+ * Contributors: Martin Ritter                                            *
  *                                                                        *
  * This software is provided "as is" without any warranty.                *
  **************************************************************************/
@@ -12,11 +12,15 @@
 #define DEPFETREADERMODULE_H
 
 #include <framework/core/Module.h>
-
 #include <string>
-#include <generators/dataobjects/MCParticle.h>
-#include <generators/dataobjects/MCParticleGraph.h>
-#include <generators/hepevt/HepevtReader.h>
+
+#include <DEPFETReader/DataReader.h>
+#include <DEPFETReader/CommonMode2.h>
+#include <DEPFETReader/IncrementalMean.h>
+namespace DEPFET {
+  typedef ValueMatrix<IncrementalMean> Pedestals;
+  typedef ValueMatrix<double> Noise;
+}
 
 namespace Belle2 {
 
@@ -44,15 +48,21 @@ namespace Belle2 {
     virtual void event();
 
   protected:
-    void calibrate();
-    void createPedestals
+    void progress(int event, int maxOrder=4);
+    void calculatePedestals();
+    void calculateNoise();
 
-    std::vector <std::string>  m_inputFiles;
+    std::vector<std::string> m_inputFiles;
+    std::string m_inputFile;
     int m_readoutFold;
     int m_calibrationEvents;
-    int m_sigmaCut;
+    double m_sigmaCut;
     int m_skipEvents;
-    int m_borderSize;
+
+    DEPFET::DataReader m_reader;
+    DEPFET::Pedestals m_pedestals;
+    DEPFET::Noise m_noise;
+    DEPFET::CommonMode m_commonMode;
   };
 
 } // end namespace Belle2
