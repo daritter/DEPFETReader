@@ -1,5 +1,6 @@
 Import('env')
 
 env['TOOLS_LIBS']['depfetReader'] = ['DEPFETReader','$ROOT_LIBS']
+env['TOOLS_LIBS']['dataReader'] = ['DEPFETReader','$ROOT_LIBS']
 
 Return('env')

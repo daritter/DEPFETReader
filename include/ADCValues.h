@@ -20,6 +20,7 @@ namespace DEPFET {
       value_type operator[](size_t index) const { return m_data[index]; }
       value_type& operator()(size_t x, size_t y) { return m_data[x*m_sizeY+y]; }
       value_type& operator[](size_t index){ return m_data[index]; }
+      bool operator!(){ return m_data.empty(); }
       template<class T2> void substract(const ValueMatrix<T2>& other){
         if(other.getSizeX() != m_sizeX || other.getSizeY() != m_sizeY) {
           throw std::runtime_error("Dimensions do not match");

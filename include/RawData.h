@@ -2,55 +2,104 @@
 #define DEPFET_RAWDATA_H
 
 #include <vector>
-#include <stdexcept>
 #include <istream>
+#include <DEPFETReader/DataView.h>
 
 namespace DEPFET {
 
-  template < class VIEWTYPE, class STORAGETYPE = unsigned int > class DataView {
-    public:
-      DataView(const std::vector<STORAGETYPE>& data, size_t nX, size_t nY) {
-        if(nY == 0 && nX>0){
-          nY = data.size()*sizeof(STORAGETYPE)/(nX*sizeof(VIEWTYPE));
-        }else if(nX == 0 && nY>0){
-          nX = data.size()*sizeof(STORAGETYPE)/(nY*sizeof(VIEWTYPE));
-        }else if(nX>0 && nY>0 && (nX*nY*sizeof(VIEWTYPE) > data.size() * sizeof(STORAGETYPE))) {
-          throw std::runtime_error("Data buffer not large enough");
-        }
-        m_data = (VIEWTYPE*) & data.front();
-        m_nX = nX;
-        m_nY = nY;
-      }
-      const VIEWTYPE& operator()(size_t x, size_t y) const { return m_data[x*m_nY+y]; }
-      const VIEWTYPE& operator[](size_t index) const { return m_data[index]; }
+  enum DeviceTypes {
+    DEVICETYPE_GROUP      = 0x0,
+    DEVICETYPE_DEPFET     = 0x2,
+    DEVICETYPE_DEPFET_128 = 0x3,
+    DEVICETYPE_DEPFET_DCD = 0x4,
+    DEVICETYPE_BAT        = 0x5,
+    DEVICETYPE_TPLL       = 0xA,
+    DEVICETYPE_UNKNOWN    = 0xB,
+    DEVICETYPE_TLU        = 0xD,   //---  new TLU  event
+    DEVICETYPE_INFO       = 0xE,   //---  new info header for run number + etc
+    DEVICETYPE_OTHER      = 0xF
+  };
 
-      size_t getSizeX() const { return m_nX; }
-      size_t getSizeY() const { return m_nY; }
-    protected:
-      VIEWTYPE* m_data;
-      size_t m_nX;
-      size_t m_nY;
+  enum EventTypes {
+    EVENTTYPE_RUN_BEGIN   = 0x0,
+    EVENTTYPE_RUN_END     = 0x1,
+    EVENTTYPE_DATA        = 0x2,
   };
 
   class RawData {
     public:
-      template<class T> DataView<T> getView(size_t nX=0, size_t nY=0) const {
-        return DataView<T>(m_data, nX, nY);
+      /** Struct containing the header information for each record */
+      struct Header {
+        unsigned int    eventSize: 20;
+        unsigned short  flag0: 1;
+        unsigned short  flag1: 1;
+        unsigned short  eventType: 2;
+        unsigned short  moduleNo:  4;
+        unsigned short  deviceType: 4;
+        unsigned int    triggerNumber;
       };
 
-      void read(std::istream &in, size_t eventSize, int deviceType, int startGate) {
-        m_data.resize(eventSize);
-        m_deviceType = deviceType;
-        m_startGate  = startGate;
-        in.read((char*) &m_data.front(), sizeof(unsigned int)*eventSize);
+      /** Struct containing the frame information for each data blob */
+      struct InfoWord  {
+        unsigned int framecnt: 10; // number of Bits
+        unsigned int startGate: 7; //jf new for 128x128
+        unsigned int padding: 3;
+        unsigned int zerosupp: 1;
+        unsigned int startgate_ver: 1;
+        unsigned int temperature: 10;
+      };
+
+      /** Constructor taking a reference to the stream from which to read the data */
+      RawData(std::istream& stream):m_stream(stream){}
+
+      /** Return a view of the data */
+      template<class T> DataView<T> getView(size_t nX=0, size_t nY=0) const {
+        return DataView<T>(&m_data.front(), m_data.size(), nX, nY);
+      };
+
+      /** Read the next Header record */
+      void readHeader(){
+        m_data.clear();
+        m_stream.read((char*)&m_header, sizeof(m_header));
       }
 
-      int getDeviceType() const { return m_deviceType; }
-      int getStartGate() const { return m_startGate; }
-      int getEventSize() const { return m_data.size(); }
+      /** Read the next data blob */
+      void readData() {
+        int dataSize = m_header.eventSize-3;
+        m_data.resize(dataSize);
+        m_stream.read((char*)&m_infoWord, sizeof(m_infoWord));
+        m_stream.read((char*)&m_data.front(), sizeof(unsigned int)*dataSize);
+      }
+
+      /** Skip the next data blob */
+      void skipData() {
+        m_stream.seekg((m_header.eventSize - 2)*sizeof(unsigned int), std::ios::cur);
+      }
+
+      /** Return the Event Type */
+      int getEventType() const { return m_header.eventType; }
+      /** Return the Trigger Number */
+      int getTriggerNr() const { return m_header.triggerNumber; }
+      /** Return the Module Number */
+      int getModuleNr() const { return m_header.moduleNo; }
+      /** Return the Device Type */
+      int getDeviceType() const { return m_header.deviceType; }
+      /** Return the Event size (including header) */
+      int getEventSize() const { return m_header.eventSize; }
+      /** Return the data size after reading the data blob */
+      int getDataSize() const { return m_data.size(); }
+      /** Return the start gate of the readout frame */
+      int getStartGate() const { return m_infoWord.startGate; }
+      /** Return the temperature value */
+      float getTemperature() const { return m_infoWord.temperature/4.0; }
     protected:
-      int m_startGate;
-      int m_deviceType;
+      /** Reference to the stream of data */
+      std::istream& m_stream;
+      /** Struct containing the header information */
+      Header m_header;
+      /** Struct containing the info word at the begin of each data blob */
+      InfoWord m_infoWord;
+      /** Array containing the raw data */
       std::vector<unsigned int> m_data;
   };
 

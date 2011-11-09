@@ -1,5 +1,5 @@
 #include <DEPFETReader/DataReader.h>
-#include <DEPFETReader/CommonMode2.h>
+#include <DEPFETReader/CommonMode.h>
 #include <DEPFETReader/IncrementalMean.h>
 
 #include <TFile.h>
@@ -23,7 +23,7 @@ namespace DEPFET {
   typedef ValueMatrix<double> Noise;
 
   Pedestals calculatePedestals(DataReader &reader, const Pedestals &firstRun, double sigmaCut=3.0){
-    ValueMatrix<IncrementalMean> pedestals;
+    Pedestals pedestals(0,10);
     int eventNr(1);
     while(reader.next()){
       const Event& event = reader.getEvent();
@@ -124,6 +124,7 @@ namespace DEPFET {
 
 }
 
+using namespace std;
 
 int main(int argc, char* argv[])
 {
@@ -135,12 +136,15 @@ int main(int argc, char* argv[])
   //TH2D* h_pedestalSpread(0);
   TH2D* h_noise(0);
 
-  TFile* rootFile = new TFile(argv[3],"RECREATE");
+  TFile* rootFile = new TFile(argv[2],"RECREATE");
 
   int nEvents = std::atoi(argv[1]);
+  vector<string> filenames;
+  for(int i=3; i<argc; ++i){ filenames.push_back(argv[i]); }
+
   for(int pass=0; pass<4; pass++){
     if(pass>2) nEvents=0;
-    reader.open(argv[2], 0, nEvents);
+    reader.open(filenames, nEvents);
     reader.skip(1);
     switch(pass){
       case 0:

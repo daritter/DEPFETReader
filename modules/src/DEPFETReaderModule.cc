@@ -99,23 +99,23 @@ void DEPFETReaderModule::initialize()
   //Initialize PXDDigits collection
   StoreArray<PXDDigit> PXDDigits;
 
-  reverse(m_inputFiles.begin(),m_inputFiles.end());
-  m_inputFile = m_inputFiles.back();
-  m_inputFiles.pop_back();
+  if(m_inputFiles.empty()){
+    B2ERROR("No input files specified");
+    return;
+  }
 
-  //caluclate pedestals
-  m_reader.open(m_inputFile, 0, m_calibrationEvents);
+  //calculate pedestals
+  m_reader.open(m_inputFiles, m_calibrationEvents);
   m_reader.skip(m_skipEvents);
   calculatePedestals();
 
-  //caluclate noise
-  m_reader.open(m_inputFile, 0, m_calibrationEvents);
+  //calculate noise
+  m_reader.open(m_inputFiles, m_calibrationEvents);
   m_reader.skip(m_skipEvents);
   calculateNoise();
 
   //Open file again
-  B2INFO("Opening file" << m_inputFile);
-  m_reader.open(m_inputFile);
+  m_reader.open(m_inputFiles);
   m_reader.skip(m_skipEvents);
 }
 
@@ -124,16 +124,10 @@ void DEPFETReaderModule::event()
 {
   StoreArray<PXDDigit>   storeDigits;
 
-  while(!m_reader.next()){
-    if(m_inputFiles.empty()){
-      StoreObjPtr <EventMetaData> eventMetaDataPtr;
-      eventMetaDataPtr->setEndOfData();
-      return;
-    }
-    m_inputFile = m_inputFiles.back();
-    m_inputFiles.pop_back();
-    B2INFO("Opening file" << m_inputFile);
-    m_reader.open(m_inputFile,9999);
+  if(!m_reader.next()){
+    StoreObjPtr <EventMetaData> eventMetaDataPtr;
+    eventMetaDataPtr->setEndOfData();
+    return;
   }
 
   Event& event = m_reader.getEvent();

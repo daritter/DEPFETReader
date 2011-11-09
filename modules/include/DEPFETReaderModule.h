@@ -15,7 +15,7 @@
 #include <string>
 
 #include <DEPFETReader/DataReader.h>
-#include <DEPFETReader/CommonMode2.h>
+#include <DEPFETReader/CommonMode.h>
 #include <DEPFETReader/IncrementalMean.h>
 namespace DEPFET {
   typedef ValueMatrix<IncrementalMean> Pedestals;
@@ -53,7 +53,6 @@ namespace Belle2 {
     void calculateNoise();
 
     std::vector<std::string> m_inputFiles;
-    std::string m_inputFile;
     int m_readoutFold;
     int m_calibrationEvents;
     double m_sigmaCut;

@@ -1,81 +1,130 @@
 #include <DEPFETReader/DataReader.h>
+#include <DEPFETReader/S3AConverter.h>
+#include <DEPFETReader/S3BConverter.h>
+#include <DEPFETReader/DCDConverter.h>
+#include <algorithm>
+#include <iostream>
 
 namespace DEPFET {
 
-  int DataReader::open(const std::string& filename, int yearflag, int nEvents)
+  void DataReader::open(const std::vector<std::string>& filenames, int nEvents)
   {
+    //Close open files
+    m_file.close();
+    m_file.clear();
+
     //Set number of events
     m_nEvents = nEvents;
     m_eventNumber = 0;
 
-    if(m_file) delete m_file;
-    m_file = new FileReader(filename);
+    //Set list of filenames to read in succession
+    m_filenames = filenames;
+    std::reverse(m_filenames.begin(),m_filenames.end());
+    openFile();
+  }
 
-    int nModules = 1;
-    if(yearflag != 9999){
-      nModules = m_file->readGroupHeader();
-      if(nModules<0) throw std::runtime_error("Could not read header");
+  bool DataReader::openFile(){
+    if(m_filenames.empty()) return false;
+    //Open the next file from the stack of files
+    std::string filename = m_filenames.back();
+    //std::cout << "Opening " << filename << std::endl;
+    m_file.close();
+    m_file.clear();
+    m_file.open(filename.c_str(), std::ios::in | std::ios::binary);
+    if(!m_file) {
+      throw std::runtime_error("Error opening file " + filename);
     }
-    //override number of modules
-    if(yearflag==6) nModules=5;
+    return true;
+  }
 
-    //Make sure event data is present
-    m_event.resize(nModules);
+  bool DataReader::readHeader(){
+    //Read one header from file. If an error occured, try the next file
+    while(true){
+      m_rawData.readHeader();
+      //No error, so return true
+      if(!m_file.fail()) return true;
 
-    //Set ModuleNr for event and mapping of moduleNo->index
-    if(yearflag!=9999){
-      m_mod2Index.clear();
-      for(int i=0; i<nModules; ++i){
-        m_file->readHeader();
-        m_event.at(i).setModuleNr(m_file->header.ModuleNo);
-        m_mod2Index[m_file->header.ModuleNo] = i;
-      }
+      //We have an error, check if there is an additional file to open
+      m_filenames.pop_back();
+      if(!openFile()) return false;
     }
-
-    return m_file->m_runNumber;
   }
 
   bool DataReader::skip(int nEvents)
   {
     m_event.clear();
     for(int i=0; i<nEvents; ++i){
-      int rc = m_file->readEventHeader();
-      //This should be the start of an event
-      if(rc!=100) return false;
-      m_file->skipEvent();
+      if(!next(true)) return false;
     }
     return true;
   }
 
-  bool DataReader::next()
+  bool DataReader::next(bool skip)
   {
-    m_event.clear();
-    ++m_eventNumber;
-    //check if max events is reached
-    if(m_nEvents>0 && m_eventNumber>m_nEvents) return false;
+    if(!skip){
+      m_event.clear();
+      ++m_eventNumber;
+      //check if max number of events is reached
+      if(m_nEvents>0 && m_eventNumber>m_nEvents) return false;
+    }
 
-    int rc = m_file->readEventHeader();
-    //This should be the start of an event
-    if(rc!=100) return false;
+    while(readHeader()){
+      if(m_rawData.getDeviceType() == DEVICETYPE_INFO){
+        m_event.setRunNumber(m_rawData.getTriggerNr());
+        continue;
+      }
+      if(m_rawData.getDeviceType() == DEVICETYPE_GROUP){
+        if(m_rawData.getEventType() == EVENTTYPE_DATA){
+          //If we are in skipping mode we don't read the data
+          if(skip){
+            m_rawData.skipData();
+            return true;
+          }
 
-    m_event.setRunNumber(m_file->m_runNumber);
-    m_event.setEventNumber(m_file->header.Triggernumber);
+          //Read event data
+          m_event.setEventNumber(m_rawData.getTriggerNr());
+          readEvent(m_rawData.getEventSize()-2);
+          return true;
+        }
+      }
+      //Skip all other headers
+      m_rawData.skipData();
+    }
+    return false;
+  }
 
-    for(size_t i=0; i<m_mod2Index.size(); ++i){
-      if(m_file->readEventHeader()!=2) return false;
-      m_file->readEvent(m_rawData);
-      int index = m_mod2Index[m_file->header.ModuleNo];
-      ADCValues& adcvalues = m_event.at(index);
-      //Now convert the data
+  void DataReader::readEvent(int dataSize){
+    size_t index(0);
+    while(dataSize>0){
+      if(!readHeader()){
+        throw std::runtime_error("Problem reading event from file");
+      }
+      if(m_rawData.getEventType() != EVENTTYPE_DATA){
+        throw std::runtime_error("Expected data event, got something else");
+      }
+      dataSize-= m_rawData.getEventSize();
+      if(dataSize<0){
+        throw std::runtime_error("Eventsize does not fit into remaining data size");
+      }
+
+      //Read data
+      m_rawData.readData();
+      //Resize number of modules if neccessary
+      m_event.resize(index+1);
+
+      //Convert raw data to adc values
+      ADCValues& adcvalues = m_event.at(index++);
+      adcvalues.setModuleNr(m_rawData.getModuleNr());
+      adcvalues.setTriggerNr(m_rawData.getTriggerNr());
       convertData(m_rawData,adcvalues);
     }
-    return true;
   }
+
 
   void DataReader::convertData(RawData &rawdata, ADCValues &adcvalues)
   {
     switch(rawdata.getDeviceType()){
-      case FileReader::DEVICETYPE_DEPFET_128: //S3B
+      case DEVICETYPE_DEPFET_128: //S3B
         if(m_fold==4){
           S3BConverter4Fold convert;
           convert(rawdata,adcvalues);
@@ -84,7 +133,7 @@ namespace DEPFET {
           convert(rawdata,adcvalues);
         }
         break;
-      case FileReader::DEVICETYPE_DEPFET_DCD: //DCD
+      case DEVICETYPE_DEPFET_DCD: //DCD
         if(m_fold==4){
           DCDConverter4Fold convert(m_useDCDBMapping);
           convert(rawdata,adcvalues);
