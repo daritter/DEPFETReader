@@ -6,6 +6,7 @@
 #include <TH2D.h>
 #include <TH2I.h>
 
+#include <iostream>
 #include <cmath>
 #include <limits>
 #include <cstdlib>
