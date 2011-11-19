@@ -76,14 +76,14 @@ namespace DEPFET {
     adcValues.setSize(32,64);
     DataView<signed char> v4data = rawData.getView<signed char>();
     int iPix(-1);
-    int nGates = adcValues.getSizeX()/4;
-    int nColDCD = adcValues.getSizeY()*4;
+    int nGates = adcValues.getSizeY()/4;
+    int nColDCD = adcValues.getSizeX()*4;
     for(int gate=0; gate<nGates; ++gate){
       int iRowD1 = (rawData.getStartGate() + gate) % nGates;
-      for(int colDCD=0; colDCD< nColDCD; ++colDCD){
+      for(int colDCD=0; colDCD<nColDCD; ++colDCD){
         int icolD = m_useDCDMapping?FPGAToDrainMap[colDCD]:colDCD;
-        int col = icolD/4 % adcValues.getSizeX();
-        int row = (iRowD1*4+icolD%4) % adcValues.getSizeY();
+        int col = (icolD/4) % adcValues.getSizeX();
+        int row = (iRowD1*4+3-icolD%4) % adcValues.getSizeY();
         adcValues(col,row) = (signed short) v4data[++iPix];
       }
     }

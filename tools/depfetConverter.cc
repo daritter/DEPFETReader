@@ -23,6 +23,7 @@ typedef map<int, PixelMean> PixelMeanMap;
 
 //Output a single value to file
 inline void dumpValue(ostream& output, double value, double scale){
+  if(isnan(value)) value=0;
   if(output) output << setprecision(2) << setw(8) << fixed << (value*scale) << " ";
 }
 
@@ -115,6 +116,7 @@ int main(int argc, char* argv[])
     ("noise", po::value<string>(), "Filename to write noise map. If none is given, no noise map is written")
     ("pedestals", po::value<string>(), "Filename to write pedestal map. If none is given, no noise map is written")
     ("scale", po::value<double>(&scaleFactor)->default_value(1.0), "Scaling factor for ADC values")
+    ("pxd6", "If set, data should be PXD6 type (4fold readout), otherwise PXD5 (2fold)")
     ;
 
   po::variables_map vm;
@@ -136,8 +138,14 @@ int main(int argc, char* argv[])
   if(calibrationFiles.empty()) calibrationFiles = inputFiles;
 
   DEPFET::DataReader reader;
+  reader.setReadoutFold(2);
   //Common mode correction: row wise correction using two half rows and one column
   DEPFET::CommonMode commonMode(2,1,2,1);
+  if(vm.count("pxd6")) {
+    reader.setReadoutFold(4);
+    reader.setUseDCDBMapping(true);
+    commonMode = DEPFET::CommonMode(4,1,1,1);
+  }
   map<int, PixelMean> pedestalMap;
   map<int, PixelMean> noiseMap;
 
