@@ -116,7 +116,8 @@ int main(int argc, char* argv[])
     ("noise", po::value<string>(), "Filename to write noise map. If none is given, no noise map is written")
     ("pedestals", po::value<string>(), "Filename to write pedestal map. If none is given, no noise map is written")
     ("scale", po::value<double>(&scaleFactor)->default_value(1.0), "Scaling factor for ADC values")
-    ("pxd6", "If set, data should be PXD6 type (4fold readout), otherwise PXD5 (2fold)")
+    ("4fold", "If set, data is read out in 4fold mode, otherwise 2fold")
+    ("dcd", "If set, common mode corretion is set to DCD mode (4 full rows), otherwise curo topology is used (two half rows")
     ;
 
   po::variables_map vm;
@@ -139,11 +140,13 @@ int main(int argc, char* argv[])
 
   DEPFET::DataReader reader;
   reader.setReadoutFold(2);
+  reader.setUseDCDBMapping(true);
   //Common mode correction: row wise correction using two half rows and one column
   DEPFET::CommonMode commonMode(2,1,2,1);
-  if(vm.count("pxd6")) {
+  if(vm.count("4fold")) {
     reader.setReadoutFold(4);
-    reader.setUseDCDBMapping(true);
+  }
+  if(vm.count("dcd")){
     commonMode = DEPFET::CommonMode(4,1,1,1);
   }
   map<int, PixelMean> pedestalMap;

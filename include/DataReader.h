@@ -10,7 +10,7 @@
 namespace DEPFET {
   class DataReader {
     public:
-      DataReader():m_eventNumber(0),m_nEvents(-1),m_rawData(m_file),m_event(1),m_fold(2), m_useDCDBMapping(false) {}
+      DataReader():m_eventNumber(0),m_nEvents(-1),m_rawData(m_file), m_fold(2), m_useDCDBMapping(true), m_event(1) {}
 
       void open(const std::vector<std::string>& filenames, int nEvents=-1);
       bool skip(int nEvents);
