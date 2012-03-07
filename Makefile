@@ -14,3 +14,7 @@ $(SOURCES): DEPFETReader
 DEPFETReader:
 	ln -sfT include DEPFETReader
 
+clean:
+	rm -f DEPFETReader depfetConverter depfetReader
+
+.PHONY: clean

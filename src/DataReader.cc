@@ -109,14 +109,20 @@ namespace DEPFET {
 
       //Read data
       m_rawData.readData();
-      //Resize number of modules if neccessary
-      m_event.resize(index+1);
+      int frameSize = m_rawData.getDataSize() / (m_trailingFrames+1);
+      for(int frame=0; frame<=m_trailingFrames; frame++){
+        //Set Offset
+        m_rawData.setOffset(frame*frameSize);
+        //Resize number of modules if neccessary
+        m_event.resize(index+1);
 
-      //Convert raw data to adc values
-      ADCValues& adcvalues = m_event.at(index++);
-      adcvalues.setModuleNr(m_rawData.getModuleNr());
-      adcvalues.setTriggerNr(m_rawData.getTriggerNr());
-      convertData(m_rawData,adcvalues);
+        //Convert raw data to adc values
+        ADCValues& adcvalues = m_event.at(index++);
+        adcvalues.setModuleNr(m_rawData.getModuleNr());
+        adcvalues.setTriggerNr(m_rawData.getTriggerNr());
+        adcvalues.setStartGate(m_rawData.getStartGate());
+        convertData(m_rawData,adcvalues);
+      }
     }
   }
 

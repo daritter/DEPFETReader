@@ -1,6 +1,10 @@
 Import('env')
 
 env['TOOLS_LIBS']['depfetReader'] = ['DEPFETReader','$ROOT_LIBS']
+env['TOOLS_LIBS']['depfetCalibration'] = ['DEPFETReader','$ROOT_LIBS', 'boost_program_options']
+env['TOOLS_LIBS']['depfetClusters'] = ['DEPFETReader','$ROOT_LIBS', 'boost_program_options']
 env['TOOLS_LIBS']['depfetConverter'] = ['DEPFETReader', 'boost_program_options']
+env['TOOLS_LIBS']['depfetHitmap'] = ['DEPFETReader', 'boost_program_options']
+env['TOOLS_LIBS']['depfetHitmapA'] = ['DEPFETReader', 'boost_program_options']
 
 Return('env')

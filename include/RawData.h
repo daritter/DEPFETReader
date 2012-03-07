@@ -54,12 +54,13 @@ namespace DEPFET {
 
       /** Return a view of the data */
       template<class T> DataView<T> getView(size_t nX=0, size_t nY=0) const {
-        return DataView<T>(&m_data.front(), m_data.size(), nX, nY);
+        return DataView<T>(&m_data.front()+m_offset, m_data.size()-m_offset, nX, nY);
       };
 
       /** Read the next Header record */
       void readHeader(){
         m_data.clear();
+        m_offset = 0;
         m_stream.read((char*)&m_header, sizeof(m_header));
       }
 
@@ -92,6 +93,8 @@ namespace DEPFET {
       int getStartGate() const { return m_infoWord.startGate; }
       /** Return the temperature value */
       float getTemperature() const { return m_infoWord.temperature/4.0; }
+      /** Set the offset for creating views */
+      void setOffset(size_t offset){ m_offset = offset; }
     protected:
       /** Reference to the stream of data */
       std::istream& m_stream;
@@ -99,6 +102,8 @@ namespace DEPFET {
       Header m_header;
       /** Struct containing the info word at the begin of each data blob */
       InfoWord m_infoWord;
+      /** Offset from the start of the data when creating views */
+      size_t m_offset;
       /** Array containing the raw data */
       std::vector<unsigned int> m_data;
   };

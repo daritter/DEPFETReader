@@ -27,16 +27,25 @@ namespace DEPFET {
        * @param divCols number of divisions per column wise correction
        */
       CommonMode(int nRows=1, int nCols=1, int divRows=1, int divCols=1):
-        m_nRows(nRows), m_nCols(nCols), m_divRows(divRows), m_divCols(divCols) {};
+        m_nRows(nRows), m_nCols(nCols), m_divRows(divRows), m_divCols(divCols),
+        m_mask(0), m_noise(0), m_cutvalue(0) {};
       /** Apply common mode corrections to raw data */
       void apply(ADCValues& data);
       /** Return the calculated column wise corrections */
-      const std::vector<int>& getCommonModesRow() const { return m_commonModeRow; }
+      const std::vector<double>& getCommonModesRow() const { return m_commonModeRow; }
       /** Return the calculated row wise corrections */
-      const std::vector<int>& getCommonModesCol() const { return m_commonModeCol; }
+      const std::vector<double>& getCommonModesCol() const { return m_commonModeCol; }
+
+      void setMask(const PixelMask* mask){
+        m_mask = mask;
+      }
+      void setNoise(double cutvalue, const PixelNoise* noise){
+        m_cutvalue = cutvalue;
+        m_noise = noise;
+      }
     protected:
       /** Calculate and apply common mode correction for a part of the matrix */
-      int calculate(ADCValues &data, int startCol, int startRow, int nCols, int nRows);
+      double calculate(ADCValues &data, int startCol, int startRow, int nCols, int nRows);
 
       /** Number of rows per row wise correction */
       int m_nRows;
@@ -47,30 +56,43 @@ namespace DEPFET {
       /** Number of divisions per column wise correction */
       int m_divCols;
       /** Caluclated row wise corrections */
-      std::vector<int> m_commonModeRow;
+      std::vector<double> m_commonModeRow;
       /** Caluclated column wise corrections */
-      std::vector<int> m_commonModeCol;
+      std::vector<double> m_commonModeCol;
+      /** Matrix containing masked pixels */
+      const PixelMask *m_mask;
+      /** Matrix containing the pixel noise */
+      const PixelNoise *m_noise;
+      /** Cut value for ignoring high signal values during common mode correction */
+      double m_cutvalue;
   };
 
-  inline int CommonMode::calculate(ADCValues &data, int startCol, int startRow, int nCols, int nRows){
-    static std::vector<int> pixelValues;
+  inline double CommonMode::calculate(ADCValues &data, int startCol, int startRow, int nCols, int nRows){
+    static std::vector<double> pixelValues;
     pixelValues.clear();
 
     //Collect pixel data
     for(int x=startCol; x<startCol+nCols; ++x){
       for(int y=startRow; y<startRow+nRows; ++y){
+        if(m_mask && (*m_mask)(x,y)!=0) {
+          data(x,y) = 0;
+          continue;
+        }
+        if(m_noise && data(x,y)>m_cutvalue*(*m_noise)(x,y)) continue;
         pixelValues.push_back(data(x,y));
       }
     }
 
     //Calculate median of selected pixel data
-    std::vector<int>::iterator middle = pixelValues.begin() + (pixelValues.size()+1)/2;
+    if(pixelValues.empty()) return 0;
+    std::vector<double>::iterator middle = pixelValues.begin() + (pixelValues.size())/2;
     std::nth_element(pixelValues.begin(), middle, pixelValues.end());
 
     //Apply correction to data
     for(int x=startCol; x<startCol+nCols; ++x){
       for(int y=startRow; y<startRow+nRows; ++y){
-        data(x,y) -= *middle;
+        if(m_mask && (*m_mask)(x,y)!=0) data(x,y) = 0;
+        else data(x,y) -= *middle;
       }
     }
 
@@ -80,8 +102,16 @@ namespace DEPFET {
 
   inline void CommonMode::apply(ADCValues& data){
     int nCols(0), nRows(0);
-    m_commonModeRow.resize(data.getSizeY()/m_nRows*m_divRows);
-    m_commonModeCol.resize(data.getSizeX()/m_nCols*m_divCols);
+    if(m_nRows>0) {
+      m_commonModeRow.resize(data.getSizeY()/m_nRows*m_divRows);
+    }else{
+      m_commonModeRow.clear();
+    }
+    if(m_nCols>0){
+      m_commonModeCol.resize(data.getSizeX()/m_nCols*m_divCols);
+    }else{
+      m_commonModeCol.clear();
+    }
 
     //Calculate and apply row wise common mode correction
     nCols = data.getSizeX()/m_divRows;

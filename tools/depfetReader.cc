@@ -101,8 +101,8 @@ namespace DEPFET {
       ADCValues& data = event[0];
       data.substract(pedestals);
       cMode.apply(data);
-      const std::vector<int>& cmRow = cMode.getCommonModesRow();
-      const std::vector<int>& cmCol = cMode.getCommonModesCol();
+      const std::vector<double>& cmRow = cMode.getCommonModesRow();
+      const std::vector<double>& cmCol = cMode.getCommonModesCol();
       for(size_t i=0; i<cmRow.size(); ++i) h_commonModeRow->Fill(cmRow[i]);
       for(size_t i=0; i<cmCol.size(); ++i) h_commonModeCol->Fill(cmCol[i]);
       if(!h_hitmap) h_hitmap = new TH2D("hitmap","Hitmap;column;row",data.getSizeX(),0,data.getSizeX(),data.getSizeY(),0,data.getSizeY());
@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
   for(int i=3; i<argc; ++i){ filenames.push_back(argv[i]); }
 
   for(int pass=0; pass<4; pass++){
-    if(pass>2) nEvents=0;
+    //if(pass>2) nEvents=0;
     reader.open(filenames, nEvents);
     reader.skip(1);
     switch(pass){
