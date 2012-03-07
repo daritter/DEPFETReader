@@ -48,7 +48,7 @@ namespace Belle2 {
     virtual void event();
 
   protected:
-    void progress(int event, int maxOrder=4);
+    void progress(int event, int maxOrder = 4);
     void calculatePedestals();
     void calculateNoise();
 

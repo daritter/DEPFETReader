@@ -5,8 +5,8 @@
 
 namespace DEPFET {
   class Exception: public std::runtime_error {
-    public:
-    Exception(const std::string& what):std::runtime_error(what){}
+  public:
+    Exception(const std::string& what): std::runtime_error(what) {}
   };
 }
 

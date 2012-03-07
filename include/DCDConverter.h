@@ -7,15 +7,15 @@
 namespace DEPFET {
 
   struct DCDConverter2Fold {
-    DCDConverter2Fold(bool useDCDMapping):m_useDCDMapping(useDCDMapping){}
+    DCDConverter2Fold(bool useDCDMapping): m_useDCDMapping(useDCDMapping) {}
     bool m_useDCDMapping;
-    void operator()(const RawData &rawData, ADCValues &adcValues);
+    void operator()(const RawData& rawData, ADCValues& adcValues);
   };
 
   struct DCDConverter4Fold {
-    DCDConverter4Fold(bool useDCDMapping):m_useDCDMapping(useDCDMapping){}
+    DCDConverter4Fold(bool useDCDMapping): m_useDCDMapping(useDCDMapping) {}
     bool m_useDCDMapping;
-    void operator()(const RawData &rawData, ADCValues &adcValues);
+    void operator()(const RawData& rawData, ADCValues& adcValues);
   };
 }
 #endif

@@ -19,11 +19,11 @@ namespace DEPFET {
     56, 78, 73, 79, 72, 94, 89, 95, 88
   };
 
-  void DCDConverter2Fold::operator()(const RawData &rawData, ADCValues &adcValues)
+  void DCDConverter2Fold::operator()(const RawData& rawData, ADCValues& adcValues)
   {
-    adcValues.setSize(64,32);
+    adcValues.setSize(64, 32);
     DataView<signed char> v4data = rawData.getView<signed char>();
-    if(m_useDCDMapping){
+    if (m_useDCDMapping) {
       // printf("=> try with internal maps \n");
       // do not touch maps above!! and cross fingers
 
@@ -56,35 +56,35 @@ namespace DEPFET {
             else irow = 2 * iDoubleRow;
           }
 
-          adcValues(icol,irow) = (signed short) v4data[++iData];
+          adcValues(icol, irow) = (signed short) v4data[++iData];
         }
       }
-    }else{
+    } else {
       // all encodings done on daq (only bonn laser data)
       int ipix = -1;
       for (size_t offset = 0; offset < adcValues.getSizeY(); ++offset)  { // loop over Switcher channels
         int igate = (rawData.getStartGate() + offset) % adcValues.getSizeY();
         for (size_t idrain = 0; idrain < adcValues.getSizeX(); ++idrain) { // loop over DCD channels
-          adcValues(idrain,igate) = (signed short) v4data[++ipix];
+          adcValues(idrain, igate) = (signed short) v4data[++ipix];
         }
       }
     }
   }
 
-  void DCDConverter4Fold::operator()(const RawData &rawData, ADCValues &adcValues)
+  void DCDConverter4Fold::operator()(const RawData& rawData, ADCValues& adcValues)
   {
-    adcValues.setSize(32,64);
+    adcValues.setSize(32, 64);
     DataView<signed char> v4data = rawData.getView<signed char>();
     int iPix(-1);
-    int nGates = adcValues.getSizeY()/4;
-    int nColDCD = adcValues.getSizeX()*4;
-    for(int gate=0; gate<nGates; ++gate){
+    int nGates = adcValues.getSizeY() / 4;
+    int nColDCD = adcValues.getSizeX() * 4;
+    for (int gate = 0; gate < nGates; ++gate) {
       int iRowD1 = (rawData.getStartGate() + gate) % nGates;
-      for(int colDCD=0; colDCD<nColDCD; ++colDCD){
-        int icolD = m_useDCDMapping?FPGAToDrainMap[colDCD]:colDCD;
-        int col = (icolD/4) % adcValues.getSizeX();
-        int row = (iRowD1*4+3-icolD%4) % adcValues.getSizeY();
-        adcValues(col,row) = (signed short) v4data[++iPix];
+      for (int colDCD = 0; colDCD < nColDCD; ++colDCD) {
+        int icolD = m_useDCDMapping ? FPGAToDrainMap[colDCD] : colDCD;
+        int col = (icolD / 4) % adcValues.getSizeX();
+        int row = (iRowD1 * 4 + 3 - icolD % 4) % adcValues.getSizeY();
+        adcValues(col, row) = (signed short) v4data[++iPix];
       }
     }
   }

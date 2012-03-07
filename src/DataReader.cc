@@ -19,71 +19,73 @@ namespace DEPFET {
 
     //Set list of filenames to read in succession
     m_filenames = filenames;
-    std::reverse(m_filenames.begin(),m_filenames.end());
+    std::reverse(m_filenames.begin(), m_filenames.end());
     openFile();
   }
 
-  bool DataReader::openFile(){
-    if(m_filenames.empty()) return false;
+  bool DataReader::openFile()
+  {
+    if (m_filenames.empty()) return false;
     //Open the next file from the stack of files
     std::string filename = m_filenames.back();
     //std::cout << "Opening " << filename << std::endl;
     m_file.close();
     m_file.clear();
     m_file.open(filename.c_str(), std::ios::in | std::ios::binary);
-    if(!m_file) {
+    if (!m_file) {
       throw std::runtime_error("Error opening file " + filename);
     }
     return true;
   }
 
-  bool DataReader::readHeader(){
+  bool DataReader::readHeader()
+  {
     //Read one header from file. If an error occured, try the next file
-    while(true){
+    while (true) {
       m_rawData.readHeader();
       //No error, so return true
-      if(!m_file.fail()) return true;
+      if (!m_file.fail()) return true;
 
       //We have an error, check if there is an additional file to open
       m_filenames.pop_back();
-      if(!openFile()) return false;
+      if (!openFile()) return false;
     }
   }
 
   bool DataReader::skip(int nEvents)
   {
     m_event.clear();
-    for(int i=0; i<nEvents; ++i){
-      if(!next(true)) return false;
+    for (int i = 0; i < nEvents; ++i) {
+      if (!next(true)) return false;
     }
     return true;
   }
 
   bool DataReader::next(bool skip)
   {
-    if(!skip){
+    if (!skip) {
       m_event.clear();
       ++m_eventNumber;
       //check if max number of events is reached
-      if(m_nEvents>0 && m_eventNumber>m_nEvents) return false;
+      if (m_nEvents > 0 && m_eventNumber > m_nEvents) return false;
     }
 
-    while(readHeader()){
-      if(m_rawData.getDeviceType() == DEVICETYPE_INFO){
+    while (readHeader()) {
+      if (m_rawData.getDeviceType() == DEVICETYPE_INFO) {
         m_event.setRunNumber(m_rawData.getTriggerNr());
         continue;
       }
-      if(m_rawData.getDeviceType() == DEVICETYPE_GROUP){
-        if(m_rawData.getEventType() == EVENTTYPE_DATA){
+      if (m_rawData.getDeviceType() == DEVICETYPE_GROUP) {
+        if (m_rawData.getEventType() == EVENTTYPE_DATA) {
           //If we are in skipping mode we don't read the data
-          if(skip){
+          if (skip) {
             m_rawData.skipData();
             return true;
           }
 
           //Read event data
           m_event.setEventNumber(m_rawData.getTriggerNr());
-          readEvent(m_rawData.getEventSize()-2);
+          readEvent(m_rawData.getEventSize() - 2);
           return true;
         }
       }
@@ -93,64 +95,65 @@ namespace DEPFET {
     return false;
   }
 
-  void DataReader::readEvent(int dataSize){
+  void DataReader::readEvent(int dataSize)
+  {
     size_t index(0);
-    while(dataSize>0){
-      if(!readHeader()){
+    while (dataSize > 0) {
+      if (!readHeader()) {
         throw std::runtime_error("Problem reading event from file");
       }
-      if(m_rawData.getEventType() != EVENTTYPE_DATA){
+      if (m_rawData.getEventType() != EVENTTYPE_DATA) {
         throw std::runtime_error("Expected data event, got something else");
       }
-      dataSize-= m_rawData.getEventSize();
-      if(dataSize<0){
+      dataSize -= m_rawData.getEventSize();
+      if (dataSize < 0) {
         throw std::runtime_error("Eventsize does not fit into remaining data size");
       }
 
       //Read data
       m_rawData.readData();
-      int frameSize = m_rawData.getDataSize() / (m_trailingFrames+1);
-      for(int frame=0; frame<=m_trailingFrames; frame++){
+      int frameSize = m_rawData.getDataSize() / (m_trailingFrames + 1);
+      for (int frame = 0; frame <= m_trailingFrames; frame++) {
         //Set Offset
-        m_rawData.setOffset(frame*frameSize);
+        m_rawData.setOffset(frame * frameSize);
         //Resize number of modules if neccessary
-        m_event.resize(index+1);
+        m_event.resize(index + 1);
 
         //Convert raw data to adc values
         ADCValues& adcvalues = m_event.at(index++);
         adcvalues.setModuleNr(m_rawData.getModuleNr());
         adcvalues.setTriggerNr(m_rawData.getTriggerNr());
         adcvalues.setStartGate(m_rawData.getStartGate());
-        convertData(m_rawData,adcvalues);
+        convertData(m_rawData, adcvalues);
       }
     }
   }
 
 
-  void DataReader::convertData(RawData &rawdata, ADCValues &adcvalues)
+  void DataReader::convertData(RawData& rawdata, ADCValues& adcvalues)
   {
-    switch(rawdata.getDeviceType()){
+    switch (rawdata.getDeviceType()) {
       case DEVICETYPE_DEPFET_128: //S3B
-        if(m_fold==4){
+        if (m_fold == 4) {
           S3BConverter4Fold convert;
-          convert(rawdata,adcvalues);
-        }else{
+          convert(rawdata, adcvalues);
+        } else {
           S3BConverter2Fold convert;
-          convert(rawdata,adcvalues);
+          convert(rawdata, adcvalues);
         }
         break;
       case DEVICETYPE_DEPFET_DCD: //DCD
-        if(m_fold==4){
+        if (m_fold == 4) {
           DCDConverter4Fold convert(m_useDCDBMapping);
-          convert(rawdata,adcvalues);
-        }else{
+          convert(rawdata, adcvalues);
+        } else {
           DCDConverter2Fold convert(m_useDCDBMapping);
-          convert(rawdata,adcvalues);
+          convert(rawdata, adcvalues);
         }
         break;
       default: //S3A/
         S3AConverter convert;
-        convert(rawdata,adcvalues);
+        convert(rawdata, adcvalues);
     }
   }
 }

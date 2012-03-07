@@ -13,8 +13,9 @@
 using namespace std;
 namespace po = boost::program_options;
 
-bool showProgress(int event, int minOrder=0, int maxOrder=3){
-  int order = (event == 0) ? 1 : max(min( (int)log10(event), maxOrder), minOrder);
+bool showProgress(int event, int minOrder = 0, int maxOrder = 3)
+{
+  int order = (event == 0) ? 1 : max(min((int)log10(event), maxOrder), minOrder);
   int interval = static_cast<int>(pow(10., order));
   return (event % interval == 0);
 }
@@ -33,17 +34,17 @@ int main(int argc, char* argv[])
   //Parse program arguments
   po::options_description desc("Allowed options");
   desc.add_options()
-    ("help,h", "Show help message")
-    ("skip,s", po::value<int>(&skipEvents)->default_value(0),"Number of events to skip before reading")
-    ("sigma", po::value<double>(&sigmaCut)->default_value(5.0),"Sigma cut to apply to data")
-    ("nevents,n", po::value<int>(&maxEvents)->default_value(-1),"Max. number of output events")
-    ("calibration,c", po::value<string>(&calibrationFile),"Calibration File")
-    ("input,i", po::value< vector<string> >(&inputFiles)->composing(),"Input files")
-    ("output,o", po::value<string>(&outputFile)->default_value("hitmap.dat"), "Output file")
-    ("4fold", "If set, data is read out in 4fold mode, otherwise 2fold")
-    ("dcd", "If set, common mode corretion is set to DCD mode (4 full rows), otherwise curo topology is used (two half rows")
-    ("trailing", po::value<int>(), "Set number of trailing frames")
-    ;
+  ("help,h", "Show help message")
+  ("skip,s", po::value<int>(&skipEvents)->default_value(0), "Number of events to skip before reading")
+  ("sigma", po::value<double>(&sigmaCut)->default_value(5.0), "Sigma cut to apply to data")
+  ("nevents,n", po::value<int>(&maxEvents)->default_value(-1), "Max. number of output events")
+  ("calibration,c", po::value<string>(&calibrationFile), "Calibration File")
+  ("input,i", po::value< vector<string> >(&inputFiles)->composing(), "Input files")
+  ("output,o", po::value<string>(&outputFile)->default_value("hitmap.dat"), "Output file")
+  ("4fold", "If set, data is read out in 4fold mode, otherwise 2fold")
+  ("dcd", "If set, common mode corretion is set to DCD mode (4 full rows), otherwise curo topology is used (two half rows")
+  ("trailing", po::value<int>(), "Set number of trailing frames")
+  ;
 
   po::variables_map vm;
   po::positional_options_description p;
@@ -57,7 +58,7 @@ int main(int argc, char* argv[])
   }
 
   //check program arguments
-  if(inputFiles.empty()) {
+  if (inputFiles.empty()) {
     cerr << "No input files given" << endl;
     return 2;
   }
@@ -66,30 +67,30 @@ int main(int argc, char* argv[])
   reader.setReadoutFold(2);
   reader.setUseDCDBMapping(true);
   //Common mode correction: row wise correction using two half rows and one column
-  DEPFET::CommonMode commonMode(2,1,2,1);
-  if(vm.count("4fold")) {
+  DEPFET::CommonMode commonMode(2, 1, 2, 1);
+  if (vm.count("4fold")) {
     reader.setReadoutFold(4);
   }
-  if(vm.count("dcd")){
-    commonMode = DEPFET::CommonMode(1,0,1,1);
+  if (vm.count("dcd")) {
+    commonMode = DEPFET::CommonMode(1, 0, 1, 1);
   }
-  if(vm.count("trailing")){
+  if (vm.count("trailing")) {
     reader.setTrailingFrames(vm["trailing"].as<int>());
   }
 
-  reader.open(inputFiles,maxEvents);
-  if(!reader.next()){
+  reader.open(inputFiles, maxEvents);
+  if (!reader.next()) {
     cerr << "Could not read a single event from the file" << cerr;
     return 5;
   }
 
-  if(calibrationFile.empty()){
+  if (calibrationFile.empty()) {
     cerr << "No calibration file given" << endl;
     return 4;
   }
   ifstream calStream(calibrationFile.c_str());
-  if(!calStream){
-    cerr <<"Could not open calibration file " << calibrationFile << endl;
+  if (!calStream) {
+    cerr << "Could not open calibration file " << calibrationFile << endl;
     return 5;
   }
 
@@ -98,68 +99,68 @@ int main(int argc, char* argv[])
   PixelValues noise;
   PixelValues hitmap;
 
-  DEPFET::Event &event = reader.getEvent();
+  DEPFET::Event& event = reader.getEvent();
   mask.setSize(event[0]);
   pedestals.setSize(mask);
   hitmap.setSize(mask);
   noise.setSize(mask);
 
-  while(calStream){
+  while (calStream) {
     int col, row, px_masked;
     double px_pedestal, px_noise;
     calStream >> col >> row >> px_masked >> px_pedestal >> px_noise;
-    if(!calStream) break;
-    mask.at(col,row) = px_masked;
-    pedestals.at(col,row).setMean(px_pedestal);
-    noise.at(col,row) = px_noise;
+    if (!calStream) break;
+    mask.at(col, row) = px_masked;
+    pedestals.at(col, row).setMean(px_pedestal);
+    noise.at(col, row) = px_noise;
   }
 
-  hitmap.substract(mask,1e4);
+  hitmap.substract(mask, 1e4);
   commonMode.setMask(&mask);
-  commonMode.setNoise(sigmaCut,&noise);
+  commonMode.setNoise(sigmaCut, &noise);
 
   int eventNr(1);
-  reader.open(inputFiles,maxEvents);
+  reader.open(inputFiles, maxEvents);
   reader.skip(skipEvents);
-  while(reader.next()){
-    DEPFET::Event &event = reader.getEvent();
-    BOOST_FOREACH(DEPFET::ADCValues &data, event){
+  while (reader.next()) {
+    DEPFET::Event& event = reader.getEvent();
+    BOOST_FOREACH(DEPFET::ADCValues & data, event) {
       //Pedestal substraction
-      for(size_t y=0; y<data.getSizeY(); ++y){
-        for(size_t x=0; x<data.getSizeX(); ++x){
-          int raw = data(x,y);
-          data(x,y) -= pedestals(x,y).getMean();
-          pedestals(x,y).addRaw(raw);
+      for (size_t y = 0; y < data.getSizeY(); ++y) {
+        for (size_t x = 0; x < data.getSizeX(); ++x) {
+          int raw = data(x, y);
+          data(x, y) -= pedestals(x, y).getMean();
+          pedestals(x, y).addRaw(raw);
         }
       }
       //data.substract(pedestals);
       //Common Mode correction
       commonMode.apply(data);
       //At this point, data(x,y) is the pixel value of column x, row y
-      for(size_t y=0; y<data.getSizeY(); ++y){
-        for(size_t x=0; x<data.getSizeX(); ++x){
-          if(data(x,y)>sigmaCut*noise(x,y)) {
-            hitmap(x,y) += data(x,y);
+      for (size_t y = 0; y < data.getSizeY(); ++y) {
+        for (size_t x = 0; x < data.getSizeX(); ++x) {
+          if (data(x, y) > sigmaCut * noise(x, y)) {
+            hitmap(x, y) += data(x, y);
           }
         }
       }
     }
-    if(showProgress(eventNr)){
+    if (showProgress(eventNr)) {
       cout << "Output: " << eventNr << " events written" << endl;
     }
     ++eventNr;
   }
 
   ofstream hitmapFile(outputFile.c_str());
-  if(!hitmapFile){
+  if (!hitmapFile) {
     cerr << "Could not open hitmap output file " << outputFile;
   }
   hitmapFile << hitmap.getSizeX() << " " << hitmap.getSizeY() << endl;
-  for(unsigned int col=0; col<hitmap.getSizeX(); ++col){
-    for(unsigned int row=0; row<hitmap.getSizeY(); ++row){
-        //Normalize
-        hitmap(col,row) /= (eventNr-1);
-        hitmapFile << hitmap(col,row) << " ";
+  for (unsigned int col = 0; col < hitmap.getSizeX(); ++col) {
+    for (unsigned int row = 0; row < hitmap.getSizeY(); ++row) {
+      //Normalize
+      hitmap(col, row) /= (eventNr - 1);
+      hitmapFile << hitmap(col, row) << " ";
     }
     hitmapFile << endl;
   }

@@ -29,7 +29,7 @@ using namespace DEPFET;
 
 REG_MODULE(DEPFETReader)
 
-DEPFETReaderModule::DEPFETReaderModule() : Module(), m_commonMode(2,1,2,1), m_currentFrame(0)
+DEPFETReaderModule::DEPFETReaderModule() : Module(), m_commonMode(2, 1, 2, 1), m_currentFrame(0)
 {
   //Set module properties
   setDescription("Read raw DEPFET data");
@@ -46,13 +46,15 @@ DEPFETReaderModule::DEPFETReaderModule() : Module(), m_commonMode(2,1,2,1), m_cu
   addParam("calibrationFile", m_calibrationFile, "File to read calibration from");
 }
 
-void DEPFETReaderModule::progress(int event, int maxOrder){
+void DEPFETReaderModule::progress(int event, int maxOrder)
+{
   int order = (event == 0) ? 1 : static_cast<int>(std::min(std::log10(event), (double)maxOrder));
   int interval = static_cast<int>(std::pow(10., order));
   if (event % interval == 0) B2INFO("Events read: " << event);
 }
 
-void DEPFETReaderModule::calculatePedestals(){
+void DEPFETReaderModule::calculatePedestals()
+{
   /*B2INFO("Calculating pedestals");
   int eventNr(1);
   double cutValue(0.0);
@@ -70,7 +72,8 @@ void DEPFETReaderModule::calculatePedestals(){
   }*/
 }
 
-void DEPFETReaderModule::calculateNoise(){
+void DEPFETReaderModule::calculateNoise()
+{
   /*B2INFO("Calculating noise");
   ValueMatrix<IncrementalMean> noise;
   noise.setSize(m_pedestals);
@@ -103,7 +106,7 @@ void DEPFETReaderModule::initialize()
   //Initialize PXDDigits collection
   StoreArray<PXDDigit> PXDDigits;
 
-  if(m_inputFiles.empty()){
+  if (m_inputFiles.empty()) {
     B2ERROR("No input files specified");
     return;
   }
@@ -121,34 +124,34 @@ void DEPFETReaderModule::initialize()
 
   //Read calibration files
   m_reader.setReadoutFold(m_readoutFold);
-  if(m_dcd>0){
-    m_commonMode = DEPFET::CommonMode(4,1,1,1);
+  if (m_dcd > 0) {
+    m_commonMode = DEPFET::CommonMode(4, 1, 1, 1);
     m_reader.setTrailingFrames(m_trailingFrames);
   }
   m_reader.open(m_inputFiles);
-  if(!m_reader.next()){
+  if (!m_reader.next()) {
     B2FATAL("Could not read a single event from the file");
   }
-  DEPFET::Event &event = m_reader.getEvent();
+  DEPFET::Event& event = m_reader.getEvent();
   ADCValues& data = event[0];
   m_mask.setSize(data);
   m_pedestals.setSize(data);
   m_noise.setSize(data);
 
   //Read calibration data
-  if(!m_calibrationFile.empty()){
+  if (!m_calibrationFile.empty()) {
     ifstream maskStream(m_calibrationFile.c_str());
-    if(!maskStream){
+    if (!maskStream) {
       B2FATAL("Could not open calibration file " << m_calibrationFile);
     }
-    while(maskStream){
+    while (maskStream) {
       int col, row, mask;
       double pedestal, noise;
       maskStream >> col >> row >> mask >> pedestal >> noise;
-      if(!maskStream) break;
-      m_mask(col,row) = mask;
-      m_pedestals(col,row) = pedestal;
-      m_noise(col,row) = noise;
+      if (!maskStream) break;
+      m_mask(col, row) = mask;
+      m_pedestals(col, row) = pedestal;
+      m_noise(col, row) = noise;
     }
   }
 
@@ -157,7 +160,7 @@ void DEPFETReaderModule::initialize()
   m_reader.skip(m_skipEvents);
 
   m_commonMode.setMask(&m_mask);
-  m_commonMode.setNoise(m_sigmaCut,&m_noise);
+  m_commonMode.setNoise(m_sigmaCut, &m_noise);
   m_currentFrame = event.size();
 }
 
@@ -165,13 +168,13 @@ void DEPFETReaderModule::initialize()
 void DEPFETReaderModule::event()
 {
   StoreArray<PXDDigit>   storeDigits;
-  const VXD::SensorInfoBase &info = VXD::GeoCache::get(VxdID(1,1,1));
+  const VXD::SensorInfoBase& info = VXD::GeoCache::get(VxdID(1, 1, 1));
 
   Event& event = m_reader.getEvent();
 
   //Get next event if we read all frames
-  if(m_currentFrame>=event.size()){
-    if(!m_reader.next()){
+  if (m_currentFrame >= event.size()) {
+    if (!m_reader.next()) {
       StoreObjPtr <EventMetaData> eventMetaDataPtr;
       eventMetaDataPtr->setEndOfData();
       return;
@@ -182,14 +185,14 @@ void DEPFETReaderModule::event()
   ADCValues& data = event[m_currentFrame++];
   data.substract(m_pedestals);
   m_commonMode.apply(data);
-  for(size_t y=0; y<data.getSizeY(); ++y){
-    for(size_t x=0; x<data.getSizeX(); ++x){
-      if(m_mask(x,y)) continue;
-      double signal = data(x,y);
-      if(signal<m_sigmaCut*m_noise(x,y)) continue;
+  for (size_t y = 0; y < data.getSizeY(); ++y) {
+    for (size_t x = 0; x < data.getSizeX(); ++x) {
+      if (m_mask(x, y)) continue;
+      double signal = data(x, y);
+      if (signal < m_sigmaCut * m_noise(x, y)) continue;
       //Create new digit
       int digIndex = storeDigits->GetLast() + 1;
-      new(storeDigits->AddrAt(digIndex)) PXDDigit(VxdID(1,1,1),x,y,info.getUCellPosition(x), info.getVCellPosition(y),max(0.0,signal));
+      new(storeDigits->AddrAt(digIndex)) PXDDigit(VxdID(1, 1, 1), x, y, info.getUCellPosition(x), info.getVCellPosition(y), max(0.0, signal));
     }
   }
 }
