@@ -74,7 +74,7 @@ namespace DEPFET {
   void DCDConverter4Fold::operator()(const RawData& rawData, ADCValues& adcValues)
   {
     adcValues.setSize(32, 64);
-    DataView<signed char> v4data = rawData.getView<signed char>();
+    DataView<signed char> v4data = rawData.getView<signed char>(32*64,1);
     int iPix(-1);
     int nGates = adcValues.getSizeY() / 4;
     int nColDCD = adcValues.getSizeX() * 4;
