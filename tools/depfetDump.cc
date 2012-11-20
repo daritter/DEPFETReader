@@ -19,6 +19,13 @@ bool showProgress(int event, int minOrder = 0, int maxOrder = 3)
   return (event % interval == 0);
 }
 
+//Output a single value to file
+inline void dumpValue(ostream& output, double value, double scale=1.0)
+{
+  if (isnan(value)) value = 0;
+  if (output) output << setprecision(2) << setw(8) << fixed << (value * scale) << " ";
+}
+
 typedef DEPFET::ValueMatrix<double> PixelValues;
 
 int main(int argc, char* argv[])
@@ -29,7 +36,6 @@ int main(int argc, char* argv[])
   string outputFile;
   string calibrationFile;
   double sigmaCut(5.0);
-  bool do_normalize(false);
 
   //Parse program arguments
   po::options_description desc("Allowed options");
@@ -40,11 +46,10 @@ int main(int argc, char* argv[])
   ("nevents,n", po::value<int>(&maxEvents)->default_value(-1), "Max. number of output events")
   ("calibration,c", po::value<string>(&calibrationFile), "Calibration File")
   ("input,i", po::value< vector<string> >(&inputFiles)->composing(), "Input files")
-  ("output,o", po::value<string>(&outputFile)->default_value("hitmap.dat"), "Output file")
+  ("output,o", po::value<string>(&outputFile)->default_value("data.dat"), "Output file")
   ("4fold", "If set, data is read out in 4fold mode, otherwise 2fold")
   ("dcd", "If set, common mode corretion is set to DCD mode (4 full rows), otherwise curo topology is used (two half rows")
   ("trailing", po::value<int>(), "Set number of trailing frames")
-  ("normalize", po::bool_switch(), "Divide ADC count by number of frames processed")
   ;
 
   po::variables_map vm;
@@ -62,6 +67,12 @@ int main(int argc, char* argv[])
   if (inputFiles.empty()) {
     cerr << "No input files given" << endl;
     return 2;
+  }
+
+  ofstream output(outputFile.c_str());
+  if(!output){
+    cerr << "Could not open output file" << endl;
+    return 3;
   }
 
   DEPFET::DataReader reader;
@@ -95,15 +106,14 @@ int main(int argc, char* argv[])
     return 5;
   }
 
+  //Read depfet calibration from file
   DEPFET::PixelMask mask;
   PixelValues pedestals;
   PixelValues noise;
-  PixelValues hitmap;
 
   DEPFET::Event& event = reader.getEvent();
   mask.setSize(event[0]);
   pedestals.setSize(mask);
-  hitmap.setSize(mask);
   noise.setSize(mask);
 
   while (calStream) {
@@ -116,52 +126,45 @@ int main(int argc, char* argv[])
     noise.at(col, row) = px_noise;
   }
 
-  hitmap.substract(mask, 1e4);
   commonMode.setMask(&mask);
   commonMode.setNoise(sigmaCut, &noise);
+
+  //Done reading calibration, now read the events
 
   int eventNr(1);
   reader.open(inputFiles, maxEvents);
   reader.skip(skipEvents);
   while (reader.next()) {
     DEPFET::Event& event = reader.getEvent();
+    output << "event " << event.getRunNumber() << " " << event.getEventNumber() << " " << event.size() << endl;
     BOOST_FOREACH(DEPFET::ADCValues & data, event) {
-      // DEPFET::ADCValues &data = event[0];
+      output << "module " << data.getModuleNr() << " " << data.getSizeX() << " " << data.getSizeY() << endl;
       //Pedestal substraction
       data.substract(pedestals);
       //Common Mode correction
       commonMode.apply(data);
       //At this point, data(x,y) is the pixel value of column x, row y
+      //Insert custom code here --->
       for (size_t y = 0; y < data.getSizeY(); ++y) {
         //Mask startgate
-        //if(y%2 == data.getStartGate()) {
-          //continue;
-          //}
         for (size_t x = 0; x < data.getSizeX(); ++x) {
-          if (data(x, y) > sigmaCut * noise(x, y)) {
-            hitmap(x, y) += data(x, y);
-          }
+            double adc = data(x,y);
+            if(adc < noise(x,y)*sigmaCut) adc = 0;
+            //if(y%2 == data.getStartGate()) adc = 0;
+            if(mask(x,y)) adc = -1;
+            dumpValue(output, adc);
         }
+        output << endl;
       }
+      //---> Done
     }
+    if (output) output << endl;
     if (showProgress(eventNr)) {
       cout << "Output: " << eventNr << " events written" << endl;
     }
     ++eventNr;
   }
 
-  ofstream hitmapFile(outputFile.c_str());
-  if (!hitmapFile) {
-    cerr << "Could not open hitmap output file " << outputFile;
-  }
-  hitmapFile << hitmap.getSizeX() << " " << hitmap.getSizeY() << endl;
-  for (unsigned int col = 0; col < hitmap.getSizeX(); ++col) {
-    for (unsigned int row = 0; row < hitmap.getSizeY(); ++row) {
-      //Normalize
-      if(do_normalize) hitmap(col, row) /= (eventNr - 1);
-      hitmapFile << hitmap(col, row) << " ";
-    }
-    hitmapFile << endl;
-  }
-  hitmapFile.close();
+  //Close the output file
+  output.close();
 }

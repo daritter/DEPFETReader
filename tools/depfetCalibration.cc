@@ -151,8 +151,8 @@ int main(int argc, char* argv[])
     ("help,h", "Show help message")
     ("sigma", po::value<double>(&sigmaCut)->default_value(5.0), "sigma cut")
     ("skip,s", po::value<int>(&skipEvents)->default_value(0), "Number of events to skip before reading")
-    ("nevents,n", po::value<int>(&maxEvents)->default_value(-1), "Max. number of output events")
-    ("mask", po::value<string>(&maskFile), "Filename for reading pixel masks")
+    ("nevents,n", po::value<int>(&maxEvents)->default_value(5000), "Max. number of output events")
+    ("mask", po::value<string>(&maskFile)->default_value(maskFile), "Filename for reading pixel masks")
     ("input,i", po::value< vector<string> >(&inputFiles)->composing(), "Input files")
     ("output,o", po::value<string>(&outputFile)->default_value("output.dat"), "Output file")
     ("scale", po::value<double>(&scaleFactor)->default_value(1.0), "Scaling factor for ADC values")
@@ -213,6 +213,7 @@ int main(int argc, char* argv[])
     io::filtering_istream maskStream;
     maskStream.push(CommentFilter());
     maskStream.push(io::file_source((maskFileFormat % data.getModuleNr()).str()));
+    std::cout << data.getModuleNr() << std::endl;
     //ifstream maskStream((maskFileFormat%data.getModuleNr()).str().c_str());
     if (!maskStream) {
       cerr << "Could not open mask file for module " << data.getModuleNr() << ", not masking any pixels" << endl;
@@ -239,8 +240,9 @@ int main(int argc, char* argv[])
   boost::format name("noise-%02dx%02d");
   for (unsigned int col = 0; col < noise.getSizeX(); ++col) {
     for (unsigned int row = 0; row < noise.getSizeY(); ++row) {
-      noise(col, row) = new TH1D((name % col % row).str().c_str(), "", 80, -10, 10);
-      raw(col, row) = new TGraph(1000);
+      noise(col, row) = new TH1D((name % col % row).str().c_str(), "", 80, 0, -1);
+      noise(col, row)->SetBuffer(1000);
+      //raw(col, row) = new TGraph(1000);
     }
   }
 
@@ -259,10 +261,10 @@ int main(int argc, char* argv[])
   reader.skip(skipEvents);
   int eventNr(1);
   TH1D* noiseFitProb = new TH1D("noiseFitPval", "NoiseFit p-value;p-value,#", 100, 0, 1);
-  TH1D* cMRHist = new TH1D("commonModeR", "common mode, row wise", 160, -20, 20);
+  TH1D* cMRHist = new TH1D("commonModeR", "common mode, row wise", 160, -50, 50);
   TH1D* cMCHist = new TH1D("commonModeC", "common mode, column wise", 160, -20, 20);
-  TH1D* rawHist = new TH1D("raw", "Raw adc values", 256, -128, 128);
-  TH1D* adcHist = new TH1D("adc", "Corrected adc values", 256, -128, 128);
+  TH1D* rawHist = new TH1D("raw", "Raw adc values", 256, 0,-1);
+  TH1D* adcHist = new TH1D("adc", "Corrected adc values", 256, 0,-1);
   commonMode.setMask(&masked);
   while (reader.next()) {
     DEPFET::Event& event = reader.getEvent();
@@ -310,7 +312,8 @@ int main(int argc, char* argv[])
   TCanvas* c1 = new TCanvas("c1", "c1");
   TF1* func = new TF1("f1", "gaus");
   c1->cd();
-  TH1D* pedHist = new TH1D("pedestals","Pedestals",256,-128,128);
+  TH1D* pedHist = new TH1D("pedestals","Pedestals",256,0,-1);
+  pedHist->SetBuffer(5000);
   boost::format canvasName("noiseFit-%02dx%02d");
   for (unsigned int col = 0; col < pedestals.getSizeX(); ++col) {
     for (unsigned int row = 0; row < pedestals.getSizeY(); ++row) {
@@ -321,11 +324,12 @@ int main(int argc, char* argv[])
       if (masked(col, row)) {
         dumpValue(output, 0, 0);
       } else {
+        noise(col,row)->BufferEmpty();
         setRangeFraction(noise(col, row));
-        noise(col, row)->Fit(func);
+        noise(col, row)->Fit(func,"Q");
         noiseFitProb->Fill(TMath::Prob(func->GetChisquare(), func->GetNDF()));
         dumpValue(output, func->GetParameter(2), scaleFactor);
-        noise(col, row)->GetXaxis()->UnZoom();
+        //noise(col, row)->GetXaxis()->UnZoom();
         //func->Draw("same");
         //c1->Update();
         //c1->Write((canvasName % col % row).str().c_str());
@@ -333,6 +337,7 @@ int main(int argc, char* argv[])
       output << endl;
     }
   }
+  pedHist->BufferEmpty();
   output.close();
   noiseFitProb->Write();
   cMRHist->Write();

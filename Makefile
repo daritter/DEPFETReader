@@ -1,13 +1,12 @@
 SOURCES = $(wildcard src/*.cc)
 CXXFLAGS = -O2
 
-all: depfetConverter
+ALL = depfetCalibration depfetHitmap depfetDump
 
-depfetConverter: tools/depfetConverter.cc $(SOURCES)
-	$(CXX) $(CXXFLAGS) -o $@ $^ -I. -lboost_program_options
+all: $(ALL)
 
-depfetReader: tools/depfetReader.cc $(SOURCES)
-	$(CXX) $(CXXFLAGS) -o $@ $^ -I. $(shell root-config --cflags --ldflags --libs)
+$(ALL): %: tools/%.cc $(SOURCES)
+	$(CXX) $(CXXFLAGS) -o $@ $^ -I. -lboost_program_options  $(shell root-config --cflags --ldflags --libs)
 
 $(SOURCES): DEPFETReader
 
@@ -15,6 +14,6 @@ DEPFETReader:
 	ln -sfT include DEPFETReader
 
 clean:
-	rm -f DEPFETReader depfetConverter depfetReader
+	rm -f DEPFETReader $(ALL)
 
 .PHONY: clean
