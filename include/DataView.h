@@ -5,7 +5,7 @@
 
 namespace DEPFET {
 
-  /** Class to provide and indexed view to a given data array This class is
+  /** Class to provide and indexed view to a given data array. This class is
    * used to provide a readonly view of a chunk of data, probably as a
    * different type. This can be used to e.g. treat the memory of an array of
    * integers as a matrix of doubles or unsigned short.

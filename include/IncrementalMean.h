@@ -4,7 +4,7 @@
 #include <cmath>
 
 namespace DEPFET {
-
+  /** Class to calculate mean and sigma on running data without having to keep all the data */
   class IncrementalMean {
   public:
     IncrementalMean(): m_entries(0), m_mean(0), m_variance(0) {}

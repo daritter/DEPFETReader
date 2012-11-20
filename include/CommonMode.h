@@ -35,10 +35,12 @@ namespace DEPFET {
     const std::vector<double>& getCommonModesRow() const { return m_commonModeRow; }
     /** Return the calculated row wise corrections */
     const std::vector<double>& getCommonModesCol() const { return m_commonModeCol; }
-
+    /** Set the mask to be used. All pixels which have a nonzero value in mask will be ignored */
     void setMask(const PixelMask* mask) {
       m_mask = mask;
     }
+    /** Set noise map and the cut value. All pixels which are more than
+     * cutvalue*noise away from 0 are ignored for common mode correction */
     void setNoise(double cutvalue, const PixelNoise* noise) {
       m_cutvalue = cutvalue;
       m_noise = noise;
