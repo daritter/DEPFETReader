@@ -44,9 +44,8 @@ int main(int argc, char* argv[])
   ("output,o", po::value<string>(&outputFile)->default_value("hitmap.dat"), "Output file")
   ("4fold", "If set, data is read out in 4fold mode, otherwise 2fold")
   ("dcd", "If set, common mode corretion is set to DCD mode (4 full rows), otherwise curo topology is used (two half rows")
-  ("trailing", po::value<int>(), "Set number of trailing frames")
   ("normalize", po::bool_switch(), "Divide ADC count by number of frames processed")
-  ("onlyFrame", po::value<int>(&frameNr), "Set the frame number to be used: -1=all, 0=original, 1=1st tailing, ...")
+  ("frame,f", po::value<int>(&frameNr)->default_value(frameNr), "Set the frame number to be used: -1=all, 0=original, 1=1st tailing, ...")
   ;
 
   po::variables_map vm;
@@ -76,9 +75,6 @@ int main(int argc, char* argv[])
   }
   if (vm.count("dcd")) {
     commonMode = DEPFET::CommonMode(4, 0, 1, 1);
-  }
-  if (vm.count("trailing")) {
-    reader.setTrailingFrames(vm["trailing"].as<int>());
   }
 
   reader.open(inputFiles, maxEvents);

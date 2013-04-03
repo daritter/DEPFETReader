@@ -19,7 +19,7 @@ namespace DEPFET {
     56, 78, 73, 79, 72, 94, 89, 95, 88
   };
 
-  void DCDConverter2Fold::operator()(const RawData& rawData, ADCValues& adcValues)
+  size_t DCDConverter2Fold::operator()(const RawData& rawData, ADCValues& adcValues)
   {
     adcValues.setSize(64, 32);
     DataView<signed char> v4data = rawData.getView<signed char>();
@@ -69,9 +69,10 @@ namespace DEPFET {
         }
       }
     }
+    return rawData.getFrameSize<signed char>(64, 32);
   }
 
-  void DCDConverter4Fold::operator()(const RawData& rawData, ADCValues& adcValues)
+  size_t DCDConverter4Fold::operator()(const RawData& rawData, ADCValues& adcValues)
   {
     adcValues.setSize(32, 64);
     DataView<signed char> v4data = rawData.getView<signed char>(32 * 64, 1);
@@ -87,5 +88,6 @@ namespace DEPFET {
         adcValues(col, row) = (signed short) v4data[++iPix];
       }
     }
+    return rawData.getFrameSize<signed char>(32, 64);
   }
 }

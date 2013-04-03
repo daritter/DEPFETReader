@@ -112,49 +112,46 @@ namespace DEPFET {
 
       //Read data
       m_rawData.readData();
-      int frameSize = m_rawData.getDataSize() / (m_trailingFrames + 1);
-      for (int frame = 0; frame <= m_trailingFrames; frame++) {
-        //Set Offset
-        m_rawData.setOffset(frame * frameSize);
-        //Resize number of modules if neccessary
+      size_t alreadyUsed = 0;
+      int frameNr = 0;
+      while (alreadyUsed < m_rawData.getDataSize()) {
         m_event.resize(index + 1);
-
-        //Convert raw data to adc values
         ADCValues& adcvalues = m_event.at(index++);
         adcvalues.setModuleNr(m_rawData.getModuleNr());
         adcvalues.setTriggerNr(m_rawData.getTriggerNr());
         adcvalues.setStartGate(m_rawData.getStartGate());
-        adcvalues.setFrameNr(frame);
-        convertData(m_rawData, adcvalues);
+        adcvalues.setFrameNr(frameNr++);
+        alreadyUsed += convertData(m_rawData, adcvalues);
+        m_rawData.setOffset(alreadyUsed);
       }
     }
   }
 
 
-  void DataReader::convertData(RawData& rawdata, ADCValues& adcvalues)
+  size_t DataReader::convertData(RawData& rawdata, ADCValues& adcvalues)
   {
     switch (rawdata.getDeviceType()) {
       case DEVICETYPE_DEPFET_128: //S3B
         if (m_fold == 4) {
           S3BConverter4Fold convert;
-          convert(rawdata, adcvalues);
+          return convert(rawdata, adcvalues);
         } else {
           S3BConverter2Fold convert;
-          convert(rawdata, adcvalues);
+          return convert(rawdata, adcvalues);
         }
         break;
       case DEVICETYPE_DEPFET_DCD: //DCD
         if (m_fold == 4) {
           DCDConverter4Fold convert(m_useDCDBMapping);
-          convert(rawdata, adcvalues);
+          return convert(rawdata, adcvalues);
         } else {
           DCDConverter2Fold convert(m_useDCDBMapping);
-          convert(rawdata, adcvalues);
+          return convert(rawdata, adcvalues);
         }
         break;
       default: //S3A/
         S3AConverter convert;
-        convert(rawdata, adcvalues);
+        return convert(rawdata, adcvalues);
     }
   }
 }

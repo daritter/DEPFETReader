@@ -2,7 +2,7 @@
 
 namespace DEPFET {
 
-  void S3AConverter::operator()(const RawData& rawData, ADCValues& adcValues)
+  size_t S3AConverter::operator()(const RawData& rawData, ADCValues& adcValues)
   {
     adcValues.setSize(64, 128);
     DataView<unsigned int> data = rawData.getView<unsigned int>();
@@ -11,6 +11,7 @@ namespace DEPFET {
       int y = data[ipix] >> 22 & 0x7F;
       adcValues(x, y) = data[ipix] & 0xffff;
     }
+    return rawData.getFrameSize<unsigned int>(64, 128);
   }
 
 }

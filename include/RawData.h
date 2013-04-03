@@ -49,6 +49,8 @@ namespace DEPFET {
       unsigned int temperature: 10;
     };
 
+    typedef unsigned int value_type;
+
     /** Constructor taking a reference to the stream from which to read the data */
     RawData(std::istream& stream): m_stream(stream) {}
 
@@ -56,6 +58,12 @@ namespace DEPFET {
     template<class T> DataView<T> getView(size_t nX = 0, size_t nY = 0) const {
       return DataView<T>(&m_data.front() + m_offset, m_data.size() - m_offset, nX, nY);
     };
+
+    /** Return the actual framesize in units of value_type used considering nx
+     * cols and nx rows of type T were needed to read the frame */
+    template<class T> size_t getFrameSize(size_t nX, size_t nY) const {
+      return nX * nY * sizeof(T) / sizeof(value_type);
+    }
 
     /** Read the next Header record */
     void readHeader() {
@@ -69,12 +77,12 @@ namespace DEPFET {
       int dataSize = m_header.eventSize - 3;
       m_data.resize(dataSize);
       m_stream.read((char*)&m_infoWord, sizeof(m_infoWord));
-      m_stream.read((char*)&m_data.front(), sizeof(unsigned int)*dataSize);
+      m_stream.read((char*)&m_data.front(), sizeof(value_type)*dataSize);
     }
 
     /** Skip the next data blob */
     void skipData() {
-      m_stream.seekg((m_header.eventSize - 2)*sizeof(unsigned int), std::ios::cur);
+      m_stream.seekg((m_header.eventSize - 2)*sizeof(value_type), std::ios::cur);
     }
 
     /** Return the Event Type */
@@ -105,7 +113,7 @@ namespace DEPFET {
     /** Offset from the start of the data when creating views */
     size_t m_offset;
     /** Array containing the raw data */
-    std::vector<unsigned int> m_data;
+    std::vector<value_type> m_data;
   };
 
 }

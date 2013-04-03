@@ -127,11 +127,11 @@ void calculatePedestals(DEPFET::DataReader& reader, PixelMean& pedestals, double
           newPedestals(x, y).add(data(x, y));
         }
       }
-      if (showProgress(eventNr)) {
-        cout << "Pedestal calculation (" << sigmaCut << " sigma cut): " << eventNr << " events read" << endl;
-      }
-      ++eventNr;
     }
+    if (showProgress(eventNr)) {
+      cout << "Pedestal calculation (" << sigmaCut << " sigma cut): " << eventNr << " events read" << endl;
+    }
+    ++eventNr;
   }
   swap(newPedestals, pedestals);
 }
@@ -160,8 +160,7 @@ int main(int argc, char* argv[])
   ("scale", po::value<double>(&scaleFactor)->default_value(1.0), "Scaling factor for ADC values")
   ("4fold", "If set, data is read out in 4fold mode, otherwise 2fold")
   ("dcd", "If set, common mode corretion is set to DCD mode (4 full rows), otherwise curo topology is used (two half rows")
-  ("trailing", po::value<int>(), "Set number of trailing frames")
-  ("onlyFrame", po::value<int>(&frameNr), "Set the frame number to be used: -1=all, 0=original, 1=1st tailing, ...")
+  ("frame,f", po::value<int>(&frameNr)->default_value(frameNr), "Set the frame number to be used: -1=all, 0=original, 1=1st tailing, ...")
   ;
 
   po::variables_map vm;
@@ -191,9 +190,6 @@ int main(int argc, char* argv[])
   }
   if (vm.count("dcd")) {
     commonMode = DEPFET::CommonMode(4, 0, 1, 1);
-  }
-  if (vm.count("trailing")) {
-    reader.setTrailingFrames(vm["trailing"].as<int>());
   }
 
   PixelMean pedestals;
@@ -264,8 +260,8 @@ int main(int argc, char* argv[])
   reader.skip(skipEvents);
   int eventNr(1);
   TH1D* noiseFitProb = new TH1D("noiseFitPval", "NoiseFit p-value;p-value,#", 100, 0, 1);
-  TH1D* cMRHist = new TH1D("commonModeR", "common mode, row wise", 160, -50, 50);
-  TH1D* cMCHist = new TH1D("commonModeC", "common mode, column wise", 160, -20, 20);
+  TH1D* cMRHist = new TH1D("commonModeR", "common mode, row wise", 160, 0, -1);
+  TH1D* cMCHist = new TH1D("commonModeC", "common mode, column wise", 160, 0, -1);
   TH1D* rawHist = new TH1D("raw", "Raw adc values", 256, 0, -1);
   TH1D* adcHist = new TH1D("adc", "Corrected adc values", 256, 0, -1);
   commonMode.setMask(&masked);
@@ -300,11 +296,11 @@ int main(int argc, char* argv[])
           noise(x, y)->Fill(signal);
         }
       }
-      if (showProgress(eventNr)) {
-        cout << "Calculating Noise: " << eventNr << " events read" << endl;
-      }
-      ++eventNr;
     }
+    if (showProgress(eventNr)) {
+      cout << "Calculating Noise: " << eventNr << " events read" << endl;
+    }
+    ++eventNr;
   }
 
   ofstream output(outputFile.c_str());

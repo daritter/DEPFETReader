@@ -7,7 +7,7 @@
 namespace DEPFET {
 
   struct S3AConverter {
-    void operator()(const RawData& rawData, ADCValues& adcValues);
+    size_t operator()(const RawData& rawData, ADCValues& adcValues);
   };
 
 }

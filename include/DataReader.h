@@ -12,7 +12,7 @@ namespace DEPFET {
   class DataReader {
   public:
     /** constructor to create a new instance */
-    DataReader(): m_eventNumber(0), m_nEvents(-1), m_fold(2), m_trailingFrames(0), m_useDCDBMapping(true), m_rawData(m_file), m_event(1) {}
+    DataReader(): m_eventNumber(0), m_nEvents(-1), m_fold(2), m_useDCDBMapping(true), m_rawData(m_file), m_event(1) {}
 
     /** open a list of files and limit the readout to nEvents */
     void open(const std::vector<std::string>& filenames, int nEvents = -1);
@@ -27,8 +27,6 @@ namespace DEPFET {
     /** set the readout fold, has to be known to configure the binary format
      * interpreter, normally 2 fold (curo readout) or 4fold (dcd readout) */
     void setReadoutFold(int fold) { m_fold = fold; }
-    /** set the number of trailing frames: There could be more than one readoutframe per module and trigger */
-    void setTrailingFrames(int frames) { m_trailingFrames = frames; }
     /** configure if DCDB mapping should be used, only relevant for dcd readout */
     void setUseDCDBMapping(bool useDCDBmapping) { m_useDCDBMapping = useDCDBmapping; }
   protected:
@@ -39,7 +37,7 @@ namespace DEPFET {
     /** read the next event */
     void readEvent(int dataSize);
     /** convert the raw binary data to ADCValues */
-    void convertData(RawData& rawdata, ADCValues& adcvalues);
+    size_t convertData(RawData& rawdata, ADCValues& adcvalues);
 
     /** current event number */
     int m_eventNumber;
@@ -47,8 +45,6 @@ namespace DEPFET {
     int m_nEvents;
     /** configured readout fold */
     int m_fold;
-    /** configured number of trailing frames */
-    int m_trailingFrames;
     /** use dcdb mapping? */
     bool m_useDCDBMapping;
     /** list of filenames */

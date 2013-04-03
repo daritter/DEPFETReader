@@ -2,7 +2,7 @@
 
 namespace DEPFET {
 
-  void S3BConverter2Fold::operator()(const RawData& rawData, ADCValues& adcValues)
+  size_t S3BConverter2Fold::operator()(const RawData& rawData, ADCValues& adcValues)
   {
     adcValues.setSize(64, 256);
     DataView<short> data = rawData.getView<short>(128, 128);
@@ -22,9 +22,10 @@ namespace DEPFET {
         adcValues(col + 1,  rgate + 1 - odderon) = data(gate, (col * 4) + 7) & 0xffff;
       }
     }
+    return rawData.getFrameSize<short>(64, 256);
   }
 
-  void S3BConverter4Fold::operator()(const RawData& rawData, ADCValues& adcValues)
+  size_t S3BConverter4Fold::operator()(const RawData& rawData, ADCValues& adcValues)
   {
     adcValues.setSize(32, 512);
     DataView<short> data = rawData.getView<short>(128, 128);
@@ -42,5 +43,6 @@ namespace DEPFET {
         adcValues(col,      rgate + 3) = data(gate, (col * 8) + 7) & 0xffff;
       }
     }
+    return rawData.getFrameSize<short>(32, 512);
   }
 }

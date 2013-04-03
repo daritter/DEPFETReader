@@ -7,11 +7,11 @@
 namespace DEPFET {
 
   struct S3BConverter2Fold {
-    void operator()(const RawData& rawData, ADCValues& adcValues);
+    size_t operator()(const RawData& rawData, ADCValues& adcValues);
   };
 
   struct S3BConverter4Fold {
-    void operator()(const RawData& rawData, ADCValues& adcValues);
+    size_t operator()(const RawData& rawData, ADCValues& adcValues);
   };
 }
 #endif
