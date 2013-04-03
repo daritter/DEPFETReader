@@ -124,6 +124,7 @@ namespace DEPFET {
         adcvalues.setModuleNr(m_rawData.getModuleNr());
         adcvalues.setTriggerNr(m_rawData.getTriggerNr());
         adcvalues.setStartGate(m_rawData.getStartGate());
+        adcvalues.setFrameNr(frame);
         convertData(m_rawData, adcvalues);
       }
     }

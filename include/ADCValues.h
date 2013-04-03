@@ -103,12 +103,16 @@ namespace DEPFET {
     int getTriggerNr() const { return m_triggerNr; }
     /** get the start gate where readout starts */
     int getStartGate() const { return m_startGate; }
+    /** get the frame number. 0 for the normal frame, 1..n for trailing frames */
+    int getFrameNr() const { return m_frameNr; }
     /** set the number of the module */
     void setModuleNr(int moduleNr) { m_moduleNr = moduleNr; }
     /** set the trigger number */
     void setTriggerNr(int triggerNr) { m_triggerNr = triggerNr; }
     /** set the start gate where readout starts */
     void setStartGate(int startGate) { m_startGate = startGate; }
+    /** set the frame number */
+    void setFrameNr(int frameNr) { m_frameNr = frameNr; }
   protected:
     /** module number */
     int m_moduleNr;
@@ -116,6 +120,8 @@ namespace DEPFET {
     int m_triggerNr;
     /** start gate */
     int m_startGate;
+    /** frame number,  0 for the normal frame, 1..n for trailing frames */
+    int m_frameNr;
   };
 
 }

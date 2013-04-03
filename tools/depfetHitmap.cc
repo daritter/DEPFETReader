@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
   string calibrationFile;
   double sigmaCut(5.0);
   bool do_normalize(false);
+  int frameNr(-1);
 
   //Parse program arguments
   po::options_description desc("Allowed options");
@@ -45,6 +46,7 @@ int main(int argc, char* argv[])
   ("dcd", "If set, common mode corretion is set to DCD mode (4 full rows), otherwise curo topology is used (two half rows")
   ("trailing", po::value<int>(), "Set number of trailing frames")
   ("normalize", po::bool_switch(), "Divide ADC count by number of frames processed")
+  ("onlyFrame", po::value<int>(&frameNr), "Set the frame number to be used: -1=all, 0=original, 1=1st tailing, ...")
   ;
 
   po::variables_map vm;
@@ -126,6 +128,7 @@ int main(int argc, char* argv[])
   while (reader.next()) {
     DEPFET::Event& event = reader.getEvent();
     BOOST_FOREACH(DEPFET::ADCValues & data, event) {
+      if(frameNr>=0 && data.getFrameNr()!=frameNr) continue;
       // DEPFET::ADCValues &data = event[0];
       //Pedestal substraction
       data.substract(pedestals);

@@ -106,13 +106,14 @@ inline void dumpValue(ostream& output, double value, double scale)
 
 //Calculate the pedestals: Determine mean and sigma of every pixel, optionally
 //applying a cut using mean and sigma of a previous run
-void calculatePedestals(DEPFET::DataReader& reader, PixelMean& pedestals, double sigmaCut, DEPFET::PixelMask& masked)
+void calculatePedestals(DEPFET::DataReader& reader, PixelMean& pedestals, double sigmaCut, DEPFET::PixelMask& masked, int frameNr)
 {
   PixelMean newPedestals;
   int eventNr(1);
   while (reader.next()) {
     DEPFET::Event& event = reader.getEvent();
     BOOST_FOREACH(DEPFET::ADCValues & data, event) {
+      if(frameNr>=0 && data.getFrameNr()!=frameNr) continue;
       if (!newPedestals) newPedestals.setSize(data);
 
       for (size_t x = 0; x < data.getSizeX(); ++x) {
@@ -144,6 +145,7 @@ int main(int argc, char* argv[])
   vector<string> inputFiles;
   string outputFile;
   string maskFile("MaskCh-Mod%1%.txt");
+  int frameNr(-1);
 
   //Parse program arguments
   po::options_description desc("Allowed options");
@@ -159,6 +161,7 @@ int main(int argc, char* argv[])
     ("4fold", "If set, data is read out in 4fold mode, otherwise 2fold")
     ("dcd", "If set, common mode corretion is set to DCD mode (4 full rows), otherwise curo topology is used (two half rows")
     ("trailing", po::value<int>(), "Set number of trailing frames")
+    ("onlyFrame", po::value<int>(&frameNr), "Set the frame number to be used: -1=all, 0=original, 1=1st tailing, ...")
     ;
 
   po::variables_map vm;
@@ -249,12 +252,12 @@ int main(int argc, char* argv[])
   //Calibration: Calculate pedestals, first run: determine mean and sigma for each pixel
   reader.open(inputFiles, maxEvents);
   reader.skip(skipEvents);
-  calculatePedestals(reader, pedestals, 0, masked);
+  calculatePedestals(reader, pedestals, 0, masked, frameNr);
 
   //Second run, this time exclude values outside of sigmaCut * pedestal spread
   reader.open(inputFiles, maxEvents);
   reader.skip(skipEvents);
-  calculatePedestals(reader, pedestals, sigmaCut, masked);
+  calculatePedestals(reader, pedestals, sigmaCut, masked, frameNr);
 
   //Third run to determine noise level of pixels
   reader.open(inputFiles, maxEvents);
@@ -269,6 +272,7 @@ int main(int argc, char* argv[])
   while (reader.next()) {
     DEPFET::Event& event = reader.getEvent();
     BOOST_FOREACH(DEPFET::ADCValues & data, event) {
+      if(frameNr>=0 && data.getFrameNr()!=frameNr) continue;
       for (size_t x = 0; x < data.getSizeX(); ++x) {
         for (size_t y = 0; y < data.getSizeY(); ++y) {
           //raw(x, y)->SetPoint(eventNr - 1, eventNr, data(x, y));

@@ -36,6 +36,7 @@ int main(int argc, char* argv[])
   string outputFile;
   string calibrationFile;
   double sigmaCut(5.0);
+  int frameNr(-1);
 
   //Parse program arguments
   po::options_description desc("Allowed options");
@@ -50,6 +51,7 @@ int main(int argc, char* argv[])
   ("4fold", "If set, data is read out in 4fold mode, otherwise 2fold")
   ("dcd", "If set, common mode corretion is set to DCD mode (4 full rows), otherwise curo topology is used (two half rows")
   ("trailing", po::value<int>(), "Set number of trailing frames")
+  ("onlyFrame", po::value<int>(&frameNr), "Set the frame number to be used: -1=all, 0=original, 1=1st tailing, ...")
   ;
 
   po::variables_map vm;
@@ -138,6 +140,7 @@ int main(int argc, char* argv[])
     DEPFET::Event& event = reader.getEvent();
     output << "event " << event.getRunNumber() << " " << event.getEventNumber() << " " << event.size() << endl;
     BOOST_FOREACH(DEPFET::ADCValues & data, event) {
+      if(frameNr>=0 && data.getFrameNr()!=frameNr) continue;
       output << "module " << data.getModuleNr() << " " << data.getSizeX() << " " << data.getSizeY() << endl;
       //Pedestal substraction
       data.substract(pedestals);
