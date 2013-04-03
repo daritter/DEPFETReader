@@ -27,34 +27,34 @@ namespace po = boost::program_options;
 namespace io = boost::iostreams;
 
 class CommentFilter : public boost::iostreams::input_filter {
-  public:
-    explicit CommentFilter(char commentChar = '#'): m_commentChar(commentChar), m_skip(false)
+public:
+  explicit CommentFilter(char commentChar = '#'): m_commentChar(commentChar), m_skip(false)
   {}
 
-    template<typename Source>
-      int get(Source& src) {
-        int c;
-        while (true) {
-          c = boost::iostreams::get(src);
-          if (c == EOF || c == boost::iostreams::WOULD_BLOCK) {
-            break;
-          }
-          if (c == m_commentChar) {
-            m_skip = true;
-          } else if (c == '\n') {
-            m_skip = false;
-          }
-
-          if (!m_skip) break;
-        }
-        return c;
+  template<typename Source>
+  int get(Source& src) {
+    int c;
+    while (true) {
+      c = boost::iostreams::get(src);
+      if (c == EOF || c == boost::iostreams::WOULD_BLOCK) {
+        break;
+      }
+      if (c == m_commentChar) {
+        m_skip = true;
+      } else if (c == '\n') {
+        m_skip = false;
       }
 
-    template<typename Source>
-      void close(Source&) { m_skip = false; }
-  private:
-    char m_commentChar;
-    bool m_skip;
+      if (!m_skip) break;
+    }
+    return c;
+  }
+
+  template<typename Source>
+  void close(Source&) { m_skip = false; }
+private:
+  char m_commentChar;
+  bool m_skip;
 };
 
 double setRangeFraction(TH1* hist, double fraction = 0.9)
@@ -113,7 +113,7 @@ void calculatePedestals(DEPFET::DataReader& reader, PixelMean& pedestals, double
   while (reader.next()) {
     DEPFET::Event& event = reader.getEvent();
     BOOST_FOREACH(DEPFET::ADCValues & data, event) {
-      if(frameNr>=0 && data.getFrameNr()!=frameNr) continue;
+      if (frameNr >= 0 && data.getFrameNr() != frameNr) continue;
       if (!newPedestals) newPedestals.setSize(data);
 
       for (size_t x = 0; x < data.getSizeX(); ++x) {
@@ -150,19 +150,19 @@ int main(int argc, char* argv[])
   //Parse program arguments
   po::options_description desc("Allowed options");
   desc.add_options()
-    ("help,h", "Show help message")
-    ("sigma", po::value<double>(&sigmaCut)->default_value(5.0), "sigma cut")
-    ("skip,s", po::value<int>(&skipEvents)->default_value(0), "Number of events to skip before reading")
-    ("nevents,n", po::value<int>(&maxEvents)->default_value(5000), "Max. number of output events")
-    ("mask", po::value<string>(&maskFile)->default_value(maskFile), "Filename for reading pixel masks")
-    ("input,i", po::value< vector<string> >(&inputFiles)->composing(), "Input files")
-    ("output,o", po::value<string>(&outputFile)->default_value("output.dat"), "Output file")
-    ("scale", po::value<double>(&scaleFactor)->default_value(1.0), "Scaling factor for ADC values")
-    ("4fold", "If set, data is read out in 4fold mode, otherwise 2fold")
-    ("dcd", "If set, common mode corretion is set to DCD mode (4 full rows), otherwise curo topology is used (two half rows")
-    ("trailing", po::value<int>(), "Set number of trailing frames")
-    ("onlyFrame", po::value<int>(&frameNr), "Set the frame number to be used: -1=all, 0=original, 1=1st tailing, ...")
-    ;
+  ("help,h", "Show help message")
+  ("sigma", po::value<double>(&sigmaCut)->default_value(5.0), "sigma cut")
+  ("skip,s", po::value<int>(&skipEvents)->default_value(0), "Number of events to skip before reading")
+  ("nevents,n", po::value<int>(&maxEvents)->default_value(5000), "Max. number of output events")
+  ("mask", po::value<string>(&maskFile)->default_value(maskFile), "Filename for reading pixel masks")
+  ("input,i", po::value< vector<string> >(&inputFiles)->composing(), "Input files")
+  ("output,o", po::value<string>(&outputFile)->default_value("output.dat"), "Output file")
+  ("scale", po::value<double>(&scaleFactor)->default_value(1.0), "Scaling factor for ADC values")
+  ("4fold", "If set, data is read out in 4fold mode, otherwise 2fold")
+  ("dcd", "If set, common mode corretion is set to DCD mode (4 full rows), otherwise curo topology is used (two half rows")
+  ("trailing", po::value<int>(), "Set number of trailing frames")
+  ("onlyFrame", po::value<int>(&frameNr), "Set the frame number to be used: -1=all, 0=original, 1=1st tailing, ...")
+  ;
 
   po::variables_map vm;
   po::positional_options_description p;
@@ -231,10 +231,10 @@ int main(int argc, char* argv[])
       maskStream >> col >> row;
       if (!maskStream) break;
       if (col < 0) for (col = 0; col < (int)masked.getSizeX(); ++col) {
-        masked(col, row) = 1;
-      } else  if (row < 0) for (row = 0; row < (int)masked.getSizeY(); ++row) {
-        masked(col, row) = 1;
-      } else
+          masked(col, row) = 1;
+        } else  if (row < 0) for (row = 0; row < (int)masked.getSizeY(); ++row) {
+          masked(col, row) = 1;
+        } else
         masked(col, row) = 1;
     }
   }
@@ -266,17 +266,17 @@ int main(int argc, char* argv[])
   TH1D* noiseFitProb = new TH1D("noiseFitPval", "NoiseFit p-value;p-value,#", 100, 0, 1);
   TH1D* cMRHist = new TH1D("commonModeR", "common mode, row wise", 160, -50, 50);
   TH1D* cMCHist = new TH1D("commonModeC", "common mode, column wise", 160, -20, 20);
-  TH1D* rawHist = new TH1D("raw", "Raw adc values", 256, 0,-1);
-  TH1D* adcHist = new TH1D("adc", "Corrected adc values", 256, 0,-1);
+  TH1D* rawHist = new TH1D("raw", "Raw adc values", 256, 0, -1);
+  TH1D* adcHist = new TH1D("adc", "Corrected adc values", 256, 0, -1);
   commonMode.setMask(&masked);
   while (reader.next()) {
     DEPFET::Event& event = reader.getEvent();
     BOOST_FOREACH(DEPFET::ADCValues & data, event) {
-      if(frameNr>=0 && data.getFrameNr()!=frameNr) continue;
+      if (frameNr >= 0 && data.getFrameNr() != frameNr) continue;
       for (size_t x = 0; x < data.getSizeX(); ++x) {
         for (size_t y = 0; y < data.getSizeY(); ++y) {
           //raw(x, y)->SetPoint(eventNr - 1, eventNr, data(x, y));
-          rawHist->Fill(data(x,y));
+          rawHist->Fill(data(x, y));
         }
       }
       //Pedestal substraction
@@ -316,21 +316,21 @@ int main(int argc, char* argv[])
   TCanvas* c1 = new TCanvas("c1", "c1");
   TF1* func = new TF1("f1", "gaus");
   c1->cd();
-  TH1D* pedHist = new TH1D("pedestals","Pedestals",256,0,-1);
+  TH1D* pedHist = new TH1D("pedestals", "Pedestals", 256, 0, -1);
   pedHist->SetBuffer(5000);
   boost::format canvasName("noiseFit-%02dx%02d");
   for (unsigned int col = 0; col < pedestals.getSizeX(); ++col) {
     for (unsigned int row = 0; row < pedestals.getSizeY(); ++row) {
       output << setw(6) << col << setw(6) << row << setw(2) << (int)masked(col, row) << " ";
       dumpValue(output, pedestals(col, row).getMean(), scaleFactor);
-      if(!masked(col,row)) pedHist->Fill(pedestals(col,row).getMean());
+      if (!masked(col, row)) pedHist->Fill(pedestals(col, row).getMean());
       noise(col, row)->Draw();
       if (masked(col, row)) {
         dumpValue(output, 0, 0);
       } else {
-        noise(col,row)->BufferEmpty();
+        noise(col, row)->BufferEmpty();
         setRangeFraction(noise(col, row));
-        noise(col, row)->Fit(func,"Q");
+        noise(col, row)->Fit(func, "Q");
         noiseFitProb->Fill(TMath::Prob(func->GetChisquare(), func->GetNDF()));
         dumpValue(output, func->GetParameter(2), scaleFactor);
         //noise(col, row)->GetXaxis()->UnZoom();

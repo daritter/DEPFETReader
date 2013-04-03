@@ -20,7 +20,7 @@ bool showProgress(int event, int minOrder = 0, int maxOrder = 3)
 }
 
 //Output a single value to file
-inline void dumpValue(ostream& output, double value, double scale=1.0)
+inline void dumpValue(ostream& output, double value, double scale = 1.0)
 {
   if (isnan(value)) value = 0;
   if (output) output << setprecision(2) << setw(8) << fixed << (value * scale) << " ";
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
   }
 
   ofstream output(outputFile.c_str());
-  if(!output){
+  if (!output) {
     cerr << "Could not open output file" << endl;
     return 3;
   }
@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
     DEPFET::Event& event = reader.getEvent();
     output << "event " << event.getRunNumber() << " " << event.getEventNumber() << " " << event.size() << endl;
     BOOST_FOREACH(DEPFET::ADCValues & data, event) {
-      if(frameNr>=0 && data.getFrameNr()!=frameNr) continue;
+      if (frameNr >= 0 && data.getFrameNr() != frameNr) continue;
       output << "module " << data.getModuleNr() << " " << data.getSizeX() << " " << data.getSizeY() << endl;
       //Pedestal substraction
       data.substract(pedestals);
@@ -151,11 +151,11 @@ int main(int argc, char* argv[])
       for (size_t y = 0; y < data.getSizeY(); ++y) {
         //Mask startgate
         for (size_t x = 0; x < data.getSizeX(); ++x) {
-            double adc = data(x,y);
-            if(adc < noise(x,y)*sigmaCut) adc = 0;
-            //if(y%2 == data.getStartGate()) adc = 0;
-            if(mask(x,y)) adc = -1;
-            dumpValue(output, adc);
+          double adc = data(x, y);
+          if (adc < noise(x, y)*sigmaCut) adc = 0;
+          //if(y%2 == data.getStartGate()) adc = 0;
+          if (mask(x, y)) adc = -1;
+          dumpValue(output, adc);
         }
         output << endl;
       }

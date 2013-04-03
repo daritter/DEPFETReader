@@ -6,7 +6,7 @@
 namespace DEPFET {
   /** Class to represent a matrix of values.
    * Offers flat or 2D access to the values and to add and substract other matrices */
-  template<class T=double> class ValueMatrix {
+  template<class T = double> class ValueMatrix {
   public:
     /** Datatype for the matrix */
     typedef typename std::vector<T>::value_type value_type;

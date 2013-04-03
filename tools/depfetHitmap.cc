@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
   while (reader.next()) {
     DEPFET::Event& event = reader.getEvent();
     BOOST_FOREACH(DEPFET::ADCValues & data, event) {
-      if(frameNr>=0 && data.getFrameNr()!=frameNr) continue;
+      if (frameNr >= 0 && data.getFrameNr() != frameNr) continue;
       // DEPFET::ADCValues &data = event[0];
       //Pedestal substraction
       data.substract(pedestals);
@@ -138,8 +138,8 @@ int main(int argc, char* argv[])
       for (size_t y = 0; y < data.getSizeY(); ++y) {
         //Mask startgate
         //if(y%2 == data.getStartGate()) {
-          //continue;
-          //}
+        //continue;
+        //}
         for (size_t x = 0; x < data.getSizeX(); ++x) {
           if (data(x, y) > sigmaCut * noise(x, y)) {
             hitmap(x, y) += data(x, y);
@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
   for (unsigned int col = 0; col < hitmap.getSizeX(); ++col) {
     for (unsigned int row = 0; row < hitmap.getSizeY(); ++row) {
       //Normalize
-      if(do_normalize) hitmap(col, row) /= (eventNr - 1);
+      if (do_normalize) hitmap(col, row) /= (eventNr - 1);
       hitmapFile << hitmap(col, row) << " ";
     }
     hitmapFile << endl;
